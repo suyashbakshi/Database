@@ -1,0 +1,18 @@
+
+Hi guys...
+
+before wednesday meeting , let me clarify some points about the project uploaded at the Github
+
+1- The main class is db.java where we create the objects and call the functions
+2- The main method for functional dependency detection is at Depcheck.java
+3- The main problem of this project is to find columns with functional dependency.
+3NF=> a table is not 3NF if one column has functional dependency with a non-key column.
+2NF=> a table is not 2NF if one column has functional dependency with a sub key of a composite key.
+
+In my opinion, we should not be worry about 1NF because relational Databases
+created with modern DBMS(es) are in 1NF by default.
+
+The code needs to further completion and more work to support even rare test cases.
+ 
+
+all comments, ideas and modifications are appreciated.
