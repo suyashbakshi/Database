@@ -1,0 +1,22 @@
+Pseudo code used in project for functional dependency detection between two coloumns
+
+For All Tables in input test file{
+
+For all columns on a table i{
+
+RS= SELECT DISTINCT  Coloumn1  FROM table i
+RS2=SELECT COUNT(DISTINCT Coloumn1 FROM table i
+
+fori=1 to RS2{
+
+
+RS3=SELECT COUNT(DISTINCT Coloumn2 FROM tablei WHERE  Coloumn1=RS(i))
+
+If RS3=1 then
+
+two coloumn2 have functional dependency with coloumn1
+
+}
+}
+
+
