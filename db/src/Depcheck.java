@@ -65,10 +65,11 @@ public class Depcheck {
 		
 		}
 		
+		//------ Cases in which a non key attribute has unique values make trouble ,so we detect them here
 	if ((a==b) && (mainf.charAt(0)!='K')){
-		//flag=false;
+		flag=false;
 	}
-		
+	//-----------------------	
 	} catch (SQLException g1) {
 		// TODO Auto-generated catch block
 		g1.printStackTrace();
