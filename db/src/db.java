@@ -21,18 +21,16 @@ public class db {
 		String[] word;
 		String [][] fields= new String[20][40] ;
 		String tt[];
-		boolean f=false;
-	//	Depcheck a;
-	//	a= new Depcheck();
-		//a.check("first","info","city","state");
-		
+		boolean f1,f2 = false,f3=false;
+	
+		int keynum=0;
 		Connectdb c;
 		c= new Connectdb();
 		c.connecting();
 		
 		// Reading the input File------------------------
 		try{
-			BufferedReader in = new BufferedReader(new FileReader("\\F:\\PhD\\DataBase\\Project1\\input5.txt\\"));
+			BufferedReader in = new BufferedReader(new FileReader("\\F:\\PhD\\DataBase\\Project1\\input8.txt\\"));
 			String str;
 
 			
@@ -82,6 +80,7 @@ public class db {
 			 char a=list.get(i).charAt(0);
 				//System.out.println(a);
 			 int coun=1;
+			 keynum=0;
 			 for (int j=0; j <word.length; j++) {
 				 for(char alphabet = 'A'; alphabet <= 'J';alphabet++) {
 					   
@@ -98,6 +97,7 @@ if (word[j].indexOf(alphabet)!=-1){
 					 				 fields[i][j]=String.valueOf(alphabet);
 					 				fields[i][j]=fields[i][j]+coun;
 					 				coun++;
+					 				keynum++;
 					 }
 					 				 }
  
@@ -105,23 +105,46 @@ if (word[j].indexOf(alphabet)!=-1){
 			 }
 			
 			}
+			//1NF Validation------------------------------
+			onenfchecker u;
+			u= new onenfchecker();
+			for (int j=0; j <tables.size(); j++) {
+				
+				for (int i=0; i <10; i++) {
+
+					try{
+					if ((fields[j+2][i].indexOf("K")!=-1)) {
+			u.onfvalidation(c.connection,dbname,tables.get(j),fields[j+2][i]);
 			
+					}
+					} catch(Exception e){
+						
+					}
+			
+				}
+			}
+			f1=u.flag;
+			f1=false;
 			//2NF Validation------------------------------------------
-			
+			if (keynum>1){
+			if (f1==false){
+				
+				
 			twonfchecker twonf;
 			twonf= new twonfchecker();
 		
 		
 			for (int j=0; j <tables.size(); j++) {
 				
-			for (int i=0; i <4; i++) {
+			for (int i=0; i <10; i++) {
+				
 
 				if ((fields[j+2][i].indexOf("K")!=-1) && (fields[j+2][i+1].indexOf("K")==-1)){
-
+				
 			twonf.twonfvalidation(c.connection,dbname,tables.get(j),fields[j+2][i],fields[j+2][i+1]);
-			f=twonf.vflag;
+			f2=twonf.vflag;
 			//System.out.println(tables.get(j)+" -- "+fields[j+2][i]+" -- "+fields[j+2][i+1]+" -- "+ tnf.vflag); 
-			if (f==false){
+			if (f2==false){
 				System.out.println("Table " + tables.get(j) + " is NOT 3NF " + " Cause= " + twonf.main + " => " + twonf.target   );	
 				break;
 			}
@@ -130,43 +153,53 @@ if (word[j].indexOf(alphabet)!=-1){
 			
 			
 				
-			}	
+			}
 		}
 		
-		if (f==true){
+		if (f2==true){
 			System.out.println("Table " + tables.get(j) + " is 2NF");	
 		}
 			
 		}	
-		
-//3NF Validation -----------------------------------------------------------------
+			}
+			}
+			else{
+				f2=true;
+			}
 			
-			if (f==true){	// if the table is 2NF we would validate 3NF
+			
+//3NF Validation -----------------------------------------------------------------
+			f2=true;
+			
+			if (f2==true){	// if the table is 2NF we would validate 3NF
 			TnfChecker tnf;
 			tnf= new TnfChecker();
 		
 		
 			for (int j=0; j <tables.size(); j++) {
 				
-			for (int i=0; i <4; i++) {
-
-
+			for (int i=0; i <10; i++) {
+try{
+				if ((fields[j+2][i].indexOf("K")==-1) && (fields[j+2][i+1].indexOf("K")==-1)){
+					
 			tnf.tnfvalidation(c.connection,dbname,tables.get(j),fields[j+2][i],fields[j+2][i+1]);
-			f=tnf.vflag;
+			f3=tnf.vflag;
 			//System.out.println(tables.get(j)+" -- "+fields[j+2][i]+" -- "+fields[j+2][i+1]+" -- "+ tnf.vflag); 
-			if (f==false){
+			if (f3==false){
 				System.out.println("Table " + tables.get(j) + " is NOT 3NF " + " Cause= " + tnf.main + " => " + tnf.target   );	
-				break;
+				//break;
 			}
 			
 				
+				}
 			
-			
-				
+} catch (Exception e){
+	
+}
 			
 		}
 		
-		if (f==true){
+		if (f3==true){
 			System.out.println("Table " + tables.get(j) + " is 3NF");	
 		}
 			
