@@ -52,7 +52,7 @@ public class Depcheck {
 		int a=Integer.valueOf(rs2.getString(1));
 		int b=Integer.valueOf(rs3.getString(1));
 		
-		System.out.println("b:" + b + "--" + "a:" + a);
+		
 		
 		for (int i=1;i<=a; i++){
 			rs.next();
@@ -60,13 +60,14 @@ public class Depcheck {
 			rs2.next();
 			if (rs2.getString(1).compareTo("1")!=0){
 				flag=false;
+				break;
 			}
 		
 		
 		}
 		
 		//------ Cases in which a non key attribute has unique values make trouble ,so we detect them here
-	if ((a==b) && (mainf.charAt(0)!='K')){
+	if ((a==b)){
 		flag=false;
 	}
 	//-----------------------	
