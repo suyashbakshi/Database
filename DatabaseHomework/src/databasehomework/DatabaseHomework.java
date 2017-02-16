@@ -52,7 +52,16 @@ public class DatabaseHomework {
 
             System.out.println();
             if (Verification.verify1NF(mTable, m_connection)) {
-                System.out.println("1 NF is Verified for table " + tablename);
+                System.out.println(tablename + " satisfies 1 Normal Form");
+
+                //if 1 NF is satisfied, then check for 2 NF.
+                if (Verification.verify2NF(mTable, m_connection)) {
+                    //verify2NF() returns true if table satisfies 2NF.
+                    System.out.println(tablename + " satisfies 2 Normal Form");
+                }
+                else
+                    System.out.println("2 NF Failed for " + tablename);
+
             } else {
                 System.out.println("1 NF failed for table " + tablename);
             }
@@ -65,8 +74,8 @@ public class DatabaseHomework {
 
 class TableSchema {
 
-    String tablename;
-    ArrayList<String> columns = new ArrayList();
+    private String tablename;
+    private ArrayList<String> columns = new ArrayList();
 
     public void setTableName(String name) {
         tablename = name;
