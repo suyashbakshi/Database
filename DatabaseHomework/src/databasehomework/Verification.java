@@ -37,13 +37,22 @@ public class Verification {
 
         System.out.println("\nChecking 2 NF for table :" + schema.getTableName());
         ArrayList<Dependency> fdList = Utils.generateDeps(schema, m_connection);
+        ArrayList<TableSchema> decomp = null;
 
-        for (int i = 0; i < fdList.size(); i++) {
-            System.out.println(fdList.get(i).showDep());
-        }
-        if(fdList.size() == 0)
+        if (fdList.isEmpty()) {
+            return true;
+        } else {
+            for (int i = 0; i < fdList.size(); i++) {
+
+                System.out.println("VIOLATING FD : " + fdList.get(i).showDep());
+                decomp = Utils.generateDecomp(schema, fdList);
+                
+            }
+            for (int j = 0; j < decomp.size(); j++) {
+                    decomp.get(j).showTable();
+                }
             return false;
-        return true;
+        }
     }
 
     private static boolean checkUnique(Connection connection, String tablename, ArrayList<String> columns) {

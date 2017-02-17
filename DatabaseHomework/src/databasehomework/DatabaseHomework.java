@@ -76,13 +76,21 @@ class TableSchema {
 
     private String tablename;
     private ArrayList<String> columns = new ArrayList();
+    
+    public TableSchema(){
+    }
+    
+    public TableSchema(String tablename,ArrayList<String> columns){
+        this.tablename = tablename;
+        this.columns = columns;
+    }
 
     public void setTableName(String name) {
-        tablename = name;
+        this.tablename = name;
     }
 
     public void addColumn(String columnName) {
-        columns.add(columnName);
+        this.columns.add(columnName);
     }
 
     public String getTableName() {
@@ -91,5 +99,14 @@ class TableSchema {
 
     public ArrayList getColumns() {
         return this.columns;
+    }
+    
+    public void showTable(){
+        System.out.print(this.tablename + "( " );
+        for (int i = 0; i < this.columns.size(); i++) {
+            System.out.print(this.columns.get(i) + " ");
+        }
+        System.out.print(")");
+        System.out.println();
     }
 }
