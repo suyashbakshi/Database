@@ -87,8 +87,8 @@ public class Utils {
             for (int j = 0; j < nonPrime.size(); j++) {
 
                 mNprime = nonPrime.get(j);
-                String viewOneQuery = "create view one as select " + mPrime + "," + mNprime + " from " + tablename + ";";
-                String viewTwoQuery = "create view two as select " + mPrime + "," + mNprime + " from " + tablename + ";";
+                String viewOneQuery = "create view team04schema.one as select " + mPrime + "," + mNprime + " from team04schema." + tablename + ";";
+                String viewTwoQuery = "create view team04schema.two as select " + mPrime + "," + mNprime + " from team04schema." + tablename + ";";
                 Utils.execute(connection, viewOneQuery);
                 Utils.execute(connection, viewTwoQuery);
 
@@ -97,13 +97,13 @@ public class Utils {
                 //for k1,k2 get the statement as one.k1=two.k1 and one.k2=two.k2 and so on...
                 String viewCombination = getViewCombination(mPrime);
 
-                String query = "select count(*) from one,two where " + viewCombination + " one." + mNprime + "<>two." + mNprime + ";";
+                String query = "select count(*) from team04schema.one,team04schema.two where " + viewCombination + " team04schema.one." + mNprime + "<>team04schema.    two." + mNprime + ";";
 
                 ResultSet rs = Utils.executeQuery(connection, query);
 
                 try {
                     rs.next();
-                    if (Integer.parseInt(rs.getString("count(*)")) > 0) {
+                    if (Integer.parseInt(rs.getString("count")) > 0) {
                         System.out.println("No FD between " + mPrime + " and " + mNprime);
                     } else {
                         deps.add(new Dependency(mPrime, mNprime));
@@ -111,8 +111,8 @@ public class Utils {
                 } catch (SQLException ex) {
                     Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                String dropView = "drop view one;";
-                String dropViewTwo = "drop view two;";
+                String dropView = "drop view team04schema.one;";
+                String dropViewTwo = "drop view team04schema.two;";
                 Utils.execute(connection, dropView);
                 Utils.execute(connection, dropViewTwo);
             }
@@ -148,7 +148,7 @@ public class Utils {
         String split[] = prime.split(",");
         String s = "";
         for (int i = 0; i < split.length; i++) {
-            s += "one." + split[i] + "=two." + split[i] + " and ";
+            s += "team04schema.one." + split[i] + "=team04schema.two." + split[i] + " and ";
         }
         return s;
 
@@ -187,7 +187,7 @@ public class Utils {
 
         ArrayList<String> primeComb = Utils.getKeyCombinations(Utils.getCommaSeparatedPrimes(schema));
         ArrayList<TableSchema> decompositions = new ArrayList();
-        
+
         //flags for creating decomposition for all nonPrimes that do not show up on right side of any FD
         //and hence are fully functional dependent on candidate key and should stay in original table
         ArrayList<String> nonPrimes = Utils.getNonPrimes(schema);
@@ -208,7 +208,7 @@ public class Utils {
                     //since it cannot be a part of main table
                     int idx = nonPrimes.indexOf(fdList.get(j).getRight());
                     flags[idx] = false;
-                    
+
                 }
             }
             if (!(dCol.size() == 1)) {
@@ -218,26 +218,73 @@ public class Utils {
         TableSchema firstDec = new TableSchema();
         firstDec.setTableName(schema.getTableName());
         //add column that is a combination of complete candidate key
-        firstDec.addColumn(primeComb.get(primeComb.size()-1));
+        firstDec.addColumn(primeComb.get(primeComb.size() - 1));
         for (int i = 0; i < nonPrimes.size(); i++) {
-            if(flags[i]){
+            if (flags[i]) {
                 firstDec.addColumn(nonPrimes.get(i));
             }
         }
         decompositions.add(firstDec);
-        
 
         return decompositions;
     }
-    
-    public static ArrayList<String> getNonPrimes(TableSchema schema){
+
+    public static ArrayList<String> getNonPrimes(TableSchema schema) {
         ArrayList<String> nonPrimes = new ArrayList();
-        
+
         for (int i = 0; i < schema.getColumns().size(); i++) {
-            if(!(schema.getColumns().get(i).toString().contains("(k)")))
+            if (!(schema.getColumns().get(i).toString().contains("(k)"))) {
                 nonPrimes.add(schema.getColumns().get(i).toString());
+            }
         }
         return nonPrimes;
+    }
+
+    static ArrayList<Dependency> generateNPtoNPdep(TableSchema mTable, Connection m_connection) {
+
+        ArrayList<String> nonPrimes = Utils.getNonPrimes(mTable);
+        ArrayList<Dependency> NPtoNPdep = new ArrayList();
+
+        String nPrime = null;
+        String nPrime1 = null;
+
+        for (int i = 0; i < nonPrimes.size(); i++) {
+
+            nPrime = nonPrimes.get(i);
+
+            for (int j = i+1; j < nonPrimes.size(); j++) {
+
+                if (i != j) {
+                    nPrime1 = nonPrimes.get(j);
+                    String one = "create view team04schema.one as select " + nPrime + "," + nPrime1 + " from team04schema." + mTable.getTableName() + ";";
+                    String two = "create view team04schema.two as select " + nPrime + "," + nPrime1 + " from team04schema." + mTable.getTableName() + ";";
+                    Utils.execute(m_connection, one);
+                    Utils.execute(m_connection, two);
+
+                    String query = "select count(*) from team04schema.one,team04schema.two where " + Utils.getViewCombination(nPrime) + " team04schema.one." + nPrime1 + "<>team04schema.two." + nPrime1 + ";";
+                    ResultSet rs = Utils.executeQuery(m_connection, query);
+                    
+                    String dropOne = "drop view one;";
+                    String dropTwo = "drop view two;";
+                    Utils.execute(m_connection, dropOne);
+                    Utils.execute(m_connection, dropTwo);
+
+                    try {
+                        rs.next();
+                        if (Integer.parseInt(rs.getString("count(*)")) > 0) {
+                            System.out.println("No FD between " + nPrime + " and " + nPrime1);
+                        } else {
+                            NPtoNPdep.add(new Dependency(nPrime, nPrime1));
+                        }
+                    } catch (SQLException ex) {
+                        Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+            
+        }
+        return NPtoNPdep;
+
     }
 
 }

@@ -46,11 +46,11 @@ public class Verification {
 
                 System.out.println("VIOLATING FD : " + fdList.get(i).showDep());
                 decomp = Utils.generateDecomp(schema, fdList);
-                
+
             }
             for (int j = 0; j < decomp.size(); j++) {
-                    decomp.get(j).showTable();
-                }
+                decomp.get(j).showTable();
+            }
             return false;
         }
     }
@@ -75,7 +75,7 @@ public class Verification {
         }
         System.out.println("JOIN : " + joinColumn);
 
-        String query = "select " + joinColumn + " from " + tablename + " group by " + joinColumn + " having count(*)>1 ;";
+        String query = "select " + joinColumn + " from team04schema." + tablename + " group by " + joinColumn + " having count(*)>1 ;";
         ResultSet result = Utils.executeQuery(connection, query);
         try {
             if (result.next()) {
@@ -99,12 +99,12 @@ public class Verification {
             String mColumn = column.get(i);
 
             if (mColumn.contains("(k)")) {
-                String query = "select count(*) from " + tablename + " where " + mColumn.replace("(k)", "") + " is NULL;";
+                String query = "select count(*) from team04schema." + tablename + " where " + mColumn.replace("(k)", "") + " is NULL;";
                 ResultSet result = Utils.executeQuery(connection, query);
 
                 try {
                     while (result.next()) {
-                        String r = result.getString("count(*)");
+                        String r = result.getString("count");
                         if (Integer.parseInt(r) > 0) {
                             System.out.println("COLUMN " + mColumn + " HAS NULLS.");
                             return false;
@@ -118,6 +118,23 @@ public class Verification {
             }
         }
         return true;
+    }
+
+    static boolean verify3NF(TableSchema mTable, Connection m_connection) {
+
+        System.out.println("\nChecking 3 NF for " + mTable.getTableName());
+        ArrayList<Dependency> fdList = Utils.generateNPtoNPdep(mTable, m_connection);
+        
+
+        if (fdList.isEmpty()) {
+            return true;
+        } else {
+            for (int i = 0; i < fdList.size(); i++) {
+                System.out.println(fdList.get(i).showDep());
+            }
+            return false;
+        }
+
     }
 
 }

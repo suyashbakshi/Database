@@ -7,6 +7,8 @@ package databasehomework;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.sql.*;
+import java.util.Properties;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
@@ -22,9 +24,9 @@ public class DatabaseHomework {
      */
     public static void main(String[] args) throws Exception {
 
-        Class.forName("com.mysql.jdbc.Driver");
+        Class.forName("com.vertica.jdbc.Driver");
 
-        Connection m_connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test", "root", "suyash");
+        Connection m_connection = DriverManager.getConnection("jdbc:vertica://129.7.243.243:5433/cosc6340s17", "team04", "XCQyntKe");
         String schemaFile = "S:\\University\\Database systems\\test_schema.txt";
         BufferedReader reader = new BufferedReader(new FileReader(schemaFile));
 
@@ -58,6 +60,13 @@ public class DatabaseHomework {
                 if (Verification.verify2NF(mTable, m_connection)) {
                     //verify2NF() returns true if table satisfies 2NF.
                     System.out.println(tablename + " satisfies 2 Normal Form");
+                    
+                    if(Verification.verify3NF(mTable, m_connection)){
+                        System.out.println(tablename + " satisfies 3 Normal Form");
+                    }
+                    else{
+                        System.out.println("3 NF Failed for " + tablename);
+                    }
                 }
                 else
                     System.out.println("2 NF Failed for " + tablename);
