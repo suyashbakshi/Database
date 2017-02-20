@@ -24,9 +24,9 @@ public class DatabaseHomework {
      */
     public static void main(String[] args) throws Exception {
 
-        Class.forName("com.vertica.jdbc.Driver");
+        Class.forName("com.mysql.jdbc.Driver");
 
-        Connection m_connection = DriverManager.getConnection("jdbc:vertica://129.7.243.243:5433/cosc6340s17", "team04", "XCQyntKe");
+        Connection m_connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test", "root", "suyash");
         String schemaFile = "S:\\University\\Database systems\\test_schema.txt";
         BufferedReader reader = new BufferedReader(new FileReader(schemaFile));
 

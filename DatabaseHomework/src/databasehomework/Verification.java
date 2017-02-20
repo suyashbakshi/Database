@@ -129,8 +129,12 @@ public class Verification {
         if (fdList.isEmpty()) {
             return true;
         } else {
+            ArrayList<TableSchema> decomp = Utils.generate3NFDecomp(mTable, fdList);
             for (int i = 0; i < fdList.size(); i++) {
-                System.out.println(fdList.get(i).showDep());
+                System.out.println("3 NF VIOLATING FD : " + fdList.get(i).showDep());
+            }
+            for (int i = 0; i < decomp.size(); i++) {
+                decomp.get(i).showTable();
             }
             return false;
         }

@@ -97,7 +97,7 @@ public class Utils {
                 //for k1,k2 get the statement as one.k1=two.k1 and one.k2=two.k2 and so on...
                 String viewCombination = getViewCombination(mPrime);
 
-                String query = "select count(*) from team04schema.one,team04schema.two where " + viewCombination + " team04schema.one." + mNprime + "<>team04schema.    two." + mNprime + ";";
+                String query = "select count(*) from team04schema.one,team04schema.two where " + viewCombination + " team04schema.one." + mNprime + "<>team04schema.two." + mNprime + ";";
 
                 ResultSet rs = Utils.executeQuery(connection, query);
 
@@ -111,8 +111,8 @@ public class Utils {
                 } catch (SQLException ex) {
                     Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                String dropView = "drop view team04schema.one;";
-                String dropViewTwo = "drop view team04schema.two;";
+                String dropView = "drop view one;";
+                String dropViewTwo = "drop view two;";
                 Utils.execute(connection, dropView);
                 Utils.execute(connection, dropViewTwo);
             }
@@ -264,14 +264,14 @@ public class Utils {
                     String query = "select count(*) from team04schema.one,team04schema.two where " + Utils.getViewCombination(nPrime) + " team04schema.one." + nPrime1 + "<>team04schema.two." + nPrime1 + ";";
                     ResultSet rs = Utils.executeQuery(m_connection, query);
                     
-                    String dropOne = "drop view one;";
-                    String dropTwo = "drop view two;";
+                    String dropOne = "drop view team04schema.one;";
+                    String dropTwo = "drop view team04schema.two;";
                     Utils.execute(m_connection, dropOne);
                     Utils.execute(m_connection, dropTwo);
 
                     try {
                         rs.next();
-                        if (Integer.parseInt(rs.getString("count(*)")) > 0) {
+                        if (Integer.parseInt(rs.getString("count")) > 0) {
                             System.out.println("No FD between " + nPrime + " and " + nPrime1);
                         } else {
                             NPtoNPdep.add(new Dependency(nPrime, nPrime1));
@@ -284,7 +284,30 @@ public class Utils {
             
         }
         return NPtoNPdep;
-
+    }
+    
+    static ArrayList<TableSchema> generate3NFDecomp(TableSchema schema, ArrayList<Dependency> deps){
+        
+        ArrayList<String> nonPrimes = Utils.getNonPrimes(schema);
+        ArrayList<TableSchema> decomp = new ArrayList();
+        
+        for (int i = 0; i < nonPrimes.size(); i++) {
+            
+            String mNprime = nonPrimes.get(i);
+            ArrayList<String> dCol = new ArrayList();
+            dCol.add(mNprime);
+            for (int j = 0; j < deps.size(); j++) {
+                
+                if(deps.get(j).getLeft().equals(mNprime)){
+                    dCol.add(deps.get(j).getRight());
+                }
+                
+            }
+            if (dCol.size() != 1) {
+                decomp.add(new TableSchema(schema.getTableName()+i,dCol));
+            }
+        }
+        return decomp;
     }
 
 }
