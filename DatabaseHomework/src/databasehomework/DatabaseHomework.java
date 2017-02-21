@@ -6,7 +6,10 @@
 package databasehomework;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.sql.*;
 import java.util.Properties;
 import java.sql.Connection;
@@ -25,10 +28,12 @@ public class DatabaseHomework {
     public static void main(String[] args) throws Exception {
 
         Class.forName("com.mysql.jdbc.Driver");
-
         Connection m_connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test", "root", "suyash");
-        String schemaFile = "S:\\University\\Database systems\\test_schema.txt";
+        String schemaFile = Utils.schemaFile;
+
         BufferedReader reader = new BufferedReader(new FileReader(schemaFile));
+        PrintWriter bw = new PrintWriter(new BufferedWriter(new FileWriter(Utils.reportFilePath)));
+        PrintWriter decFile = new PrintWriter(new BufferedWriter(new FileWriter(Utils.decFilePath)));
 
         String schema;
 
@@ -52,31 +57,35 @@ public class DatabaseHomework {
                 mTable.addColumn(s);
             }
 
+            
             System.out.println();
-            if (Verification.verify1NF(mTable, m_connection)) {
+            if (Verification.verify1NF(bw, mTable, m_connection)) {
                 System.out.println(tablename + " satisfies 1 Normal Form");
 
                 //if 1 NF is satisfied, then check for 2 NF.
-                if (Verification.verify2NF(mTable, m_connection)) {
+                if (Verification.verify2NF(decFile, bw, mTable, m_connection)) {
                     //verify2NF() returns true if table satisfies 2NF.
                     System.out.println(tablename + " satisfies 2 Normal Form");
                     
-                    if(Verification.verify3NF(mTable, m_connection)){
+                    if(Verification.verify3NF(decFile, bw, mTable, m_connection)){
                         System.out.println(tablename + " satisfies 3 Normal Form");
                     }
                     else{
-                        System.out.println("3 NF Failed for " + tablename);
+                        System.out.println("3 NF Failed for " + tablename + ". Decompositions Generated.");
                     }
                 }
                 else
-                    System.out.println("2 NF Failed for " + tablename);
+                    System.out.println("2 NF Failed for " + tablename + ". Decompositions Generated.");
 
             } else {
-                System.out.println("1 NF failed for table " + tablename);
+                System.out.println("1 NF failed for table " + tablename + ". Cannot proceed with further validations.");
             }
+            
         }
-
+        
         reader.close();
+        bw.close();
+        decFile.close();
     }
 
 }
@@ -117,5 +126,16 @@ class TableSchema {
         }
         System.out.print(")");
         System.out.println();
+    }
+    
+    @Override
+    public String toString(){
+        StringBuffer str = new StringBuffer();
+        str.append(this.tablename).append("(");
+        for (int i = 0; i < this.columns.size(); i++) {
+            str.append(this.columns.get(i)).append(" ");
+        }
+        str.append(")");
+        return str.toString();
     }
 }
