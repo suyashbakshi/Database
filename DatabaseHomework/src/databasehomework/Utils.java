@@ -22,11 +22,14 @@ public class Utils {
     static final String reportFilePath = "S:\\University\\Database systems\\report.txt";
     static final String schemaFile = "S:\\University\\Database systems\\test_schema.txt";
     static final String decFilePath = "S:\\University\\Database systems\\decReport.txt";
+    static final String sqlFilePath = "S:\\University\\Database systems\\NF.sql";
+    static ArrayList<String> queries = new ArrayList();
 
     public static ResultSet executeQuery(Connection connection, String query) {
 
         try {
             System.out.println("QUERY FIRED : " + query);
+            queries.add(query);
             PreparedStatement ps = connection.prepareStatement(query);
             return ps.executeQuery();
 
@@ -41,6 +44,7 @@ public class Utils {
 
         try {
             System.out.println("QUERY FIRED : " + query);
+            queries.add(query);
             PreparedStatement ps = connection.prepareStatement(query);
             return ps.execute();
 

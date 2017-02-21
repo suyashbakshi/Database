@@ -86,6 +86,12 @@ public class DatabaseHomework {
         reader.close();
         bw.close();
         decFile.close();
+        
+        PrintWriter sqlWriter = new PrintWriter(new BufferedWriter(new FileWriter(Utils.sqlFilePath,true)));
+        for (int i = 0; i < Utils.queries.size(); i++) {
+            sqlWriter.println(Utils.queries.get(i));
+        }
+        sqlWriter.close();
     }
 
 }
