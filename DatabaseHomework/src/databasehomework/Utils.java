@@ -367,8 +367,8 @@ public class Utils {
         for (int i = 0; i < decomp.size(); i++) {
             Utils.createDecompTable(schema, decomp.get(i), connection);
         }
-        String joinQuery = "select count(*) from " + Utils.getJoinCombination(decomp) + ";";
-        String query = "select count(*) from " + schema.getTableName() + ";";
+        String joinQuery = "select count(*) from (select DISTINCT " + Utils.getCommaSeparatedPrimes(schema) + " from (select * from " + Utils.getJoinCombination(decomp) + ") as x GROUP BY " + Utils.getCommaSeparatedPrimes(schema) + ") as y;";
+        String query = "select count(*) from (select distinct " + Utils.getCommaSeparatedPrimes(schema) + " from " + schema.getTableName() + ") as z;";
         ResultSet joinRs = Utils.executeQuery(connection, joinQuery);
         ResultSet rs = Utils.executeQuery(connection, query);
 
