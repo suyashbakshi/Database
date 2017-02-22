@@ -137,7 +137,7 @@ public class Verification {
 
                 try {
                     while (result.next()) {
-                        String r = result.getString("count(*)");
+                        String r = result.getString("count");
                         if (Integer.parseInt(r) > 0) {
                             System.out.println("COLUMN " + mColumn + " HAS NULLS.");
                             return false;

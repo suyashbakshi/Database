@@ -94,23 +94,23 @@ public class Utils {
             for (int j = 0; j < nonPrime.size(); j++) {
 
                 mNprime = nonPrime.get(j);
-                String viewOneQuery = "create view one as select " + mPrime + "," + mNprime + " from " + tablename + ";";
-                String viewTwoQuery = "create view two as select " + mPrime + "," + mNprime + " from " + tablename + ";";
-                Utils.execute(connection, viewOneQuery);
-                Utils.execute(connection, viewTwoQuery);
+//                String viewOneQuery = "create view one as select " + mPrime + "," + mNprime + " from " + tablename + ";";
+//                String viewTwoQuery = "create view two as select " + mPrime + "," + mNprime + " from " + tablename + ";";
+//                Utils.execute(connection, viewOneQuery);
+//                Utils.execute(connection, viewTwoQuery);
 
                 //get view combinations as
                 //for k1        the statement as one.k1=two.k1
                 //for k1,k2 get the statement as one.k1=two.k1 and one.k2=two.k2 and so on...
                 String viewCombination = getViewCombination(mPrime);
 
-                String query = "select count(*) from one,two where " + viewCombination + " one." + mNprime + "<>two." + mNprime + ";";
+                String query = "select count(*) from " + tablename + " as one," + tablename + " as two where " + viewCombination + " one." + mNprime + "<>two." + mNprime + ";";
 
                 ResultSet rs = Utils.executeQuery(connection, query);
 
                 try {
                     rs.next();
-                    if (Integer.parseInt(rs.getString("count(*)")) > 0) {
+                    if (Integer.parseInt(rs.getString("count")) > 0) {
                         System.out.println("No FD between " + mPrime + " and " + mNprime);
                     } else {
                         deps.add(new Dependency(mPrime, mNprime));
@@ -118,10 +118,10 @@ public class Utils {
                 } catch (SQLException ex) {
                     Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                String dropView = "drop view one;";
-                String dropViewTwo = "drop view two;";
-                Utils.execute(connection, dropView);
-                Utils.execute(connection, dropViewTwo);
+//                String dropView = "drop view one;";
+//                String dropViewTwo = "drop view two;";
+//                Utils.execute(connection, dropView);
+//                Utils.execute(connection, dropViewTwo);
             }
 
         }
@@ -220,7 +220,7 @@ public class Utils {
                     //mark the flag for non Prime as false, which appears on right side in a partial dependency
                     //since it cannot be a part of main table
                     int idx = nonPrimes.indexOf(fdList.get(j).getRight());
-                    flags[idx] = false;
+                    flags[idx] = true;
 
                 }
             }
@@ -231,13 +231,14 @@ public class Utils {
 
         TableSchema firstDec = new TableSchema();
         firstDec.setTableName(schema.getTableName() + 0);
+        firstDec.addColumn("i");
 
         for (int i = 0; i < primes.size(); i++) {
             firstDec.addColumn(primes.get(i));
         }
 
         for (int i = 0; i < nonPrimes.size(); i++) {
-            if (flags[i]) {
+            if (!flags[i]) {
                 firstDec.addColumn(nonPrimes.get(i));
             }
         }
@@ -285,22 +286,22 @@ public class Utils {
 
                 if (i != j) {
                     nPrime1 = nonPrimes.get(j);
-                    String one = "create view one as select " + nPrime + "," + nPrime1 + " from " + mTable.getTableName() + ";";
-                    String two = "create view two as select " + nPrime + "," + nPrime1 + " from " + mTable.getTableName() + ";";
-                    Utils.execute(m_connection, one);
-                    Utils.execute(m_connection, two);
+//                    String one = "create view one as select " + nPrime + "," + nPrime1 + " from " + mTable.getTableName() + ";";
+//                    String two = "create view two as select " + nPrime + "," + nPrime1 + " from " + mTable.getTableName() + ";";
+//                    Utils.execute(m_connection, one);
+//                    Utils.execute(m_connection, two);
 
-                    String query = "select count(*) from one,two where " + Utils.getViewCombination(nPrime) + " one." + nPrime1 + "<>two." + nPrime1 + ";";
+                    String query = "select count(*) from " + mTable.getTableName() + "as one," + mTable.getTableName()+ " as two where " + Utils.getViewCombination(nPrime) + " one." + nPrime1 + "<>two." + nPrime1 + ";";
                     ResultSet rs = Utils.executeQuery(m_connection, query);
 
-                    String dropOne = "drop view one;";
-                    String dropTwo = "drop view two;";
-                    Utils.execute(m_connection, dropOne);
-                    Utils.execute(m_connection, dropTwo);
+//                    String dropOne = "drop view one;";
+//                    String dropTwo = "drop view two;";
+//                    Utils.execute(m_connection, dropOne);
+//                    Utils.execute(m_connection, dropTwo);
 
                     try {
                         rs.next();
-                        if (Integer.parseInt(rs.getString("count(*)")) > 0) {
+                        if (Integer.parseInt(rs.getString("count")) > 0) {
                             System.out.println("No FD between " + nPrime + " and " + nPrime1);
                         } else {
                             NPtoNPdep.add(new Dependency(nPrime, nPrime1));
@@ -343,6 +344,7 @@ public class Utils {
         }
         TableSchema firstDecomp = new TableSchema();
         firstDecomp.setTableName(schema.getTableName() + 0);
+        firstDecomp.addColumn("i");
 
         for (int i = 0; i < primes.size(); i++) {
             firstDecomp.addColumn(primes.get(i));
@@ -374,7 +376,7 @@ public class Utils {
             joinRs.next();
             rs.next();
 
-            if (Integer.parseInt(joinRs.getString("count(*)")) == Integer.parseInt(rs.getString("count(*)"))) {
+            if (Integer.parseInt(joinRs.getString("count")) == Integer.parseInt(rs.getString("count"))) {
                 return true;
             }
 
@@ -391,7 +393,7 @@ public class Utils {
             col.append(decomp.getColumns().get(i)).append(",");
         }
         col.deleteCharAt(col.lastIndexOf(","));
-        String createTable = "create table " + decomp.getTableName() + " as (select " + col.toString() + " from " + schema.getTableName() + ");";
+        String createTable = "create table team04schema." + decomp.getTableName() + " as (select DISTINCT " + col.toString() + " from " + schema.getTableName() + ");";
 //        System.out.println("CREATE STRING : " + createTable);
         Utils.execute(connection, createTable);
     }
@@ -403,7 +405,7 @@ public class Utils {
             if (i != 0) {
                 joinComb.append(" natural join ");
             }
-            joinComb.append(decomp.get(i).getTableName());
+            joinComb.append("team04schema.").append(decomp.get(i).getTableName());
         }
         return joinComb.toString();
     }
