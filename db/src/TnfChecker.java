@@ -7,12 +7,10 @@ boolean vflag=true;
 String main,target;
 	
 	public void tnfvalidation( Connection connection,String db,String table,String mainf,String tempf){
-	Depcheck a;
-	a= new Depcheck();
+	Depcheck2 a;
+	a= new Depcheck2();
 	
-	//a.check("first","info","city","state");
-
-	//System.out.println(fields[2][i]);
+	
 	try{
 		if ((mainf.length()!=0) && (tempf.length()!=0)){
 			a.check(connection,db,table,mainf,tempf);
