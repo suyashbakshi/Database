@@ -113,7 +113,7 @@ string x;
   	for(int l=0;l<k;l++){
   		//cout<<l<<" "<<mcol[l]<<"\n";
 		if(columns.find(mcol[l]) != string::npos){
-			//cout<<mcol[l]<<" is in Columns\n";
+			cout<<mcol[l]<<" is in Columns\n";
 			idx[l]=true;
 		}
 		else{
@@ -179,7 +179,9 @@ void generateOutput(string source, string columns, string destination, int displ
 					else if(where_flag==1){
 						
 						split(x,' ',v);
+						cout<<"flag=1 and v[wIdx]="<<v[wIdx]<<" and wVal="<<wVal<<"\n";
 						if(v[wIdx]==wVal){
+							
 							cout<<x<<"\n";
 						}
 					
@@ -206,19 +208,22 @@ void generateOutput(string source, string columns, string destination, int displ
       								
       							}
    						}
+   						cout<<"\n";
    					}
    					else if(where_flag==1){
    						
+   						cout<<"flag=1 and v[wIdx]="<<v[wIdx]<<"\n";
    						if(v[wIdx] == wVal){
    							for (int i = 0; i < v.size(); ++i) {
 								if(idx[i]==true){
       									cout << v[i] << ' ';
       								}
    							}
+   							cout<<"\n";
    						}
    						
    					}
-   					cout<<"\n";
+   					
 				}	
 				
 				
@@ -248,7 +253,7 @@ void generateOutput(string source, string columns, string destination, int displ
 			
 			//string to diffrentiate * and col1,col2,...
 			string temp_cols=getColumnString(source);
-						
+			cout<<"Columns got for source :"<<temp_cols<<"\n";			
 
 			//check if where flag is set or not. if yes, determine the index of that column
 			//so while reading the data we can compare the value at that index
@@ -276,14 +281,25 @@ void generateOutput(string source, string columns, string destination, int displ
 
 			if(columns!="*"){
 				temp_cols=columns;
-			
+				cout<<"COLOLOL "<<columns<<"\n";
 				vector<string> vec;
 				split(temp_cols,',',vec);
+				cout<<"Vec size "<<vec.size()<<"\n";
+				
 				t_fout<<"columns=";
+				
+				//in case where temp table is going to have only one column
+				//the split function returns 0 elements and the for loop below does not 
+				//insert the entry of that column in catalog since the loop condition does not hold true
+				//, in that case we check and manually enter the column value
+				if(vec.size()==0){
+					t_fout<<temp_cols<<":type ,";
+				}
+				
 				
 				//add column names to catalog
 				for(int i=0; i<vec.size(); i++){
-					
+					cout<<"Vector "<<vec[i]<<"\n";
 					t_fout<<vec[i]<<":type ,";
 				
 				}
@@ -311,7 +327,8 @@ void generateOutput(string source, string columns, string destination, int displ
 			ofstream fout;
 			fout.open(t_destination.c_str(),std::ios_base::app);
 			
-
+			if(columns=="*")
+				cout<<"Columns to be select are "<<columns<<"\n";	
 			
 			
 			if(columns=="*"){
@@ -321,7 +338,6 @@ void generateOutput(string source, string columns, string destination, int displ
 				
 					vector<string> v;
 						
-					//cout<<x<<"\n";
 					if(where_flag !=1)
 						fout<<x<<"\n";
 					else if(where_flag==1){
@@ -335,6 +351,7 @@ void generateOutput(string source, string columns, string destination, int displ
 				}
 			}
 			else{
+				cout<<"in else";
 				//logic for selecting specific columns here
 				
 				//get the indexes of all columns and those to be chosen are marked true
@@ -345,40 +362,40 @@ void generateOutput(string source, string columns, string destination, int displ
 				//add a \n after each iteration
 				string x;
 				while(getline(f,x)){
-					
 					vector<string> v;
 					split(x, ' ', v);
+					
 					if(where_flag !=1){
 						for (int i = 0; i < v.size(); ++i) {
 							if(idx[i]==true){
-      								cout << v[i] << ' ';
       								fout<<v[i]<<' ';
+      								cout<<v[i]<<' ';
       							}
    						}
+   						fout<<"\n";
+   						cout<<"\n";
+   						
    					}
    					else if(where_flag==1){
    						
    						if(v[wIdx] == wVal){
-   							for (int i = 0; i < v.size(); ++i) {
+   							for (int i = 0; i < v.size()-1; ++i) {
 								if(idx[i]==true){
-      									cout << v[i] << ' ';
-      									fout<<v[i]<<' ';
+									fout<<v[i]<<' ';
       								}
    							}
+   							
+							fout<<"\n";
    						}
-   						
+
    					}
-					cout<<"\n";
-					fout<<"\n";
-				}	
-				
-				
-				
-				
-				
+
+				}
+				cout<<"print after while ends\n";				
 			}
 			f.close();
 			fout.close();
+			//cout<<"print before break";
 			break;
 		}
 
@@ -421,8 +438,9 @@ string select(){
 		//3. WHERE:	in case of - select * from t1 WHERE <some_condition>
 		
 		int where_flag=0;			
-		string where_column, where_value;			
-		if(mtoken=yylex() == WHERE){
+		string where_column, where_value;
+		mtoken=yylex();			
+		if(mtoken == WHERE){
 			cout<<"Where detected when coming outwards\n";
 			where_flag=1;
 			mtoken=yylex(); //column name
@@ -434,6 +452,7 @@ string select(){
 		}		
 		
 		while((mtoken != IDENTIFIER) && (mtoken!=SEMICOLON)){
+			cout<<"I went here\n"<<yytext;
 			mtoken=yylex();
 		}
 		if(mtoken==IDENTIFIER){
@@ -493,7 +512,7 @@ string select(){
 			cout<<"Select columns : "<<columns<<" from table : "<<src_tablename<<"\n";
 			
 			//call the generate output function from here for single select queries as 
-			generateOutput(src_tablename, columns, "null", 0, where_flag, "null", "null");
+			generateOutput(src_tablename, columns, "null", 0, where_flag, where_column, where_value);
 			return src_tablename;
 		}
 		
