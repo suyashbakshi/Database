@@ -1,0 +1,12 @@
+tablename=T1
+columns=A:INT,B:CHAR(5),C:INT
+primary key=A
+recordsize=27
+tablename_temp=T2
+columns=A:type,B:type,C:type
+primary key=
+recordsize=
+temp_table_join=T1_join_T2
+columns=T1.A:INT,T1.B:CHAR(5),T1.C:INT,T2.A:INT,T2.B:CHAR(5),T2.C:INT
+primary key=
+recordsize=
