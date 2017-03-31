@@ -14,6 +14,7 @@ extern int yymore;
 extern int input;
 
 string matched;
+string select();
 
 struct node
 {
@@ -74,6 +75,9 @@ void split(const string& s, char c,vector<string>& v) {
       if (j == string::npos)
          v.push_back(s.substr(i, s.length()));
    }
+   if(v.size()==0)
+   	v.push_back(s);
+   	
 }
 
 
@@ -142,21 +146,25 @@ string x;
  	vector<string> vec;
  	split(columns,',',vec); //A C D G
  	
+ 	//split columns "=" A:INT...
  	vector<string> vec1;
  	split(x,'=',vec1);
- 	
+ 	//split the columns: A:INT <> B:CHAR <> C:INT
  	vector<string> vec2;
  	split(vec1[1],',',vec2); 
  	
  	bool* idx = new bool[vec2.size()];
+ 	
+ 	//if only one column is to be selected from JOIN, then vec.size() remains zero
+ 	//and random values are assigned to idx which causes irregularity while selecting columns	
+ 	
+ 	
  	int flag;
  	for(int i=0; i<vec2.size(); i++){
  		flag=0;
  		vector<string> vec3;
  		split(vec2[i],':',vec3); //A
- 		//cout<<"Loop "<<vec3[0]<<"\n";
  		for(int j=0; j<vec.size(); j++){
- 			
  			if(vec3[0] == vec[j]){
  				idx[i]=true;
  				flag=1;
@@ -279,103 +287,138 @@ void join(string table1, string table2, int cc_idx1, int cc_idx2){
 //it then uses this joint table to select relevant columns(passed as 3rd param)
 void parseJoin(string table1, string table2, string columns){
 	
-	//first of all we make an catalog entry for the join table
-	string columnT1 = getColumnString(table1);
-	string columnT2 = getColumnString(table2);
 	
-	vector<string> vec1;
-	split(columnT1,'=',vec1);
-	vector<string> vec2;
-	split(columnT2,'=',vec2);
-	
-	vector<string> v1;
-	split(vec1[1],',',v1);
-	
-	vector<string> v2;
-	split(vec2[1],',',v2);
-	
-	ofstream fout("catalog.txt",std::ios_base::app);
-	fout<<"temp_table_join="<<table1+"_join_"+table2<<"\n";
-	
-	fout<<"columns=";
-	
-	for(int i=0;i<v1.size(); i++){
-		fout<<table1<<"."<<v1[i]<<",";
-	}
-	
-	for(int i=0;i<v2.size(); i++){
-		if(i==v2.size()-1)
-			fout<<table2<<"."<<v1[i]<<"\n";
-		else
-			fout<<table2<<"."<<v1[i]<<",";
-	}
-	
-	
-	fout<<"primary key=\n";
-	fout<<"recordsize=\n";
-	fout.close();
-	//skip tokens to get columns used for join.
+	//if token after join is a select statement, we call select function which generates
+	//output of select query in the alias table given.
 	int mtoken = yylex();		
-	mtoken=yylex();
-	mtoken=yylex();
-	mtoken=yylex();	
-	string t1_col = yytext;
+	if(mtoken==SELECT){
+		cout<<"Select detected\n";
+		
+		string alias=select();
+		
+		table2=alias;
+		
+		mtoken=yylex();
+	}
 
-	int cc_idx1;
-	vector<string> vec3;
-	split(vec1[1],',',vec3);
-	for(int i=0; i<vec3.size(); i++){
-		if(vec3[i].find(t1_col+":")!=string::npos)
-			cc_idx1=i;
-	}
+
+	if(mtoken==ON){
 	
-	mtoken=yylex();
-	mtoken=yylex();
-	mtoken=yylex();
-	mtoken=yylex();
-	string t2_col = yytext;
+		//first of all we make an catalog entry for the join table
+		string columnT1 = getColumnString(table1);
+		string columnT2 = getColumnString(table2);
+		//cout<<"1 "<<table1<<" 2 "<<table2<<"\n";
+		vector<string> vec1;
+		split(columnT1,'=',vec1);
+		vector<string> vec2;
+		split(columnT2,'=',vec2);
+		
+		vector<string> v1;
+		split(vec1[1],',',v1);
+		
+		vector<string> v2;
+		split(vec2[1],',',v2);
+		
+		ofstream fout("catalog.txt",std::ios_base::app);
+		fout<<"temp_table_join="<<table1+"_join_"+table2<<"\n";
+		
+		fout<<"columns=";
 	
-	int cc_idx2;
-	vector<string> vec4;
-	split(vec2[1],',',vec4);
-	for(int i=0; i<vec4.size(); i++){
-		if(vec4[i].find(t2_col+":")!=string::npos)
-			cc_idx2=i;
-	}
-	//cout<<t2_col<<" found at "<<cc_idx2<<"\n";
+		for(int i=0;i<v1.size(); i++){
+			fout<<table1<<"."<<v1[i]<<",";
+		}
+		
+		for(int i=0;i<v2.size(); i++){
+			if(i==v2.size()-1)
+				fout<<table2<<"."<<v2[i]<<"\n";
+			else
+				fout<<table2<<"."<<v2[i]<<",";
+		}
+		
+		
+		fout<<"primary key=\n";
+		fout<<"recordsize=\n";
+		fout.close();
 	
-	join(table1,table2,cc_idx1,cc_idx2);
+		mtoken=yylex();
+		mtoken=yylex();
+		mtoken=yylex();	
+		string t1_col = yytext;
+
+		int cc_idx1;
+		vector<string> vec3;
+		split(vec1[1],',',vec3);
+		for(int i=0; i<vec3.size(); i++){
+			if(vec3[i].find(t1_col+":")!=string::npos)
+				cc_idx1=i;
+		}
 	
-	cout<<"The columns to be selectd from join are "<<columns<<"\n";
-	
-	bool* idx;
-	
-	string joinTable = table1+".tbl_join_"+table2+".tbl.tbl";
-	ifstream f(joinTable.c_str(), ios::in | ios::binary);
-	
-	if(columns != "*"){
-		idx=getColumnIndexes(table1+"_join_"+table2, columns);
-		string x;
-		while(getline(f,x)){
-			
-			vector<string> vec5;
-			split(x,' ',vec5);
-			
-			for(int i=0; i<vec5.size(); i++){
-				if(idx[i]==true)
-					cout<<vec5[i]<<" ";
+		mtoken=yylex();
+		mtoken=yylex();
+		mtoken=yylex();
+		mtoken=yylex();
+		string t2_col = yytext;
+		
+		int cc_idx2;
+		vector<string> vec4;
+		split(vec2[1],',',vec4);
+		for(int i=0; i<vec4.size(); i++){
+			if(vec4[i].find(t2_col+":")!=string::npos)
+				cc_idx2=i;
+		}
+		//cout<<t2_col<<" found at "<<cc_idx2<<"\n";
+		
+		join(table1,table2,cc_idx1,cc_idx2);
+		
+		cout<<"The columns to be selectd from join are "<<columns<<"\n";
+		
+		bool* idx;
+		
+		string joinTable = table1+".tbl_join_"+table2+".tbl.tbl";
+		ifstream f(joinTable.c_str(), ios::in | ios::binary);
+		
+		if(columns != "*"){
+			idx=getColumnIndexes(table1+"_join_"+table2, columns);
+			string x;
+			while(getline(f,x)){
+				
+				vector<string> vec5;
+				split(x,' ',vec5);
+				
+				for(int i=0; i<vec5.size(); i++){
+					if(idx[i]==true)
+						cout<<vec5[i]<<" ";
+				}
+				cout<<"\n";
 			}
-			cout<<"\n";
+		}	
+		else if(columns=="*"){
+			cout<<"Select all\n";
+			string x;
+			while(getline(f,x)){
+				cout<<x<<"\n";
+			}
 		}
 	}
-	else if(columns=="*"){
-		cout<<"Select all\n";
-		string x;
-		while(getline(f,x)){
-			cout<<x<<"\n";
+	else if(mtoken==SEMICOLON){
+		cout<<"Semicolon detected\n";
+		
+		ifstream f1((table1+".tbl").c_str(), ios::in);
+		ifstream f2((table2+".tbl").c_str(), ios::in);
+		ofstream fout((table1+".tbl_join_"+table2+".tbl.tbl").c_str(),ios::out | ios::binary);
+		
+		string x1;
+		while(getline(f1,x1)){
+			string x2;
+			while(getline(f2,x2)){
+				cout<<x1<<" "<<x2<<"\n";
+			}			
 		}
-	}
-}
+		f1.close();
+		f2.close();
+		fout.close();		
+	}	
+}		
 
 void generateOutput(string source, string columns, string destination, int display_flag, int where_flag, string wCol, string wVal){
 
@@ -582,7 +625,7 @@ void generateOutput(string source, string columns, string destination, int displ
 			
 			
 			if(columns=="*"){
-				cout<<"inside if";	
+				//cout<<"inside if";	
 				string x;
 				while( getline(f,x)){
 				
@@ -686,7 +729,7 @@ string select(){
 		//1. IDENTIFIER : in case of - select... (select * from T1 ) T2;
 		//2. SEMICOLON : in case of - select * from t1;
 		//3. WHERE:	in case of - select * from t1 WHERE <some_condition>
-		
+		//4. JOIN: in case of - select * from (select * from t1) t4 JOIN T2;
 		int where_flag=0;			
 		string where_column, where_value;
 		mtoken=yylex();			
@@ -699,6 +742,20 @@ string select(){
 			mtoken=yylex(); //value
 			where_value=yytext;
 			mtoken=yylex(); // ) or ;
+		}
+		
+		//if join is detected, we call function parseJoin, which parses the query
+		//i.e. extracts column names to be compared, their indexes in corresponding tables
+		//and then calls the join() function with those parameters.
+		if(mtoken== JOIN){
+		
+			
+			mtoken=yylex();
+			cout<<"Source table : "<<alias+"_JOIN_"<<yytext<<" Selected Columns : "<<columns<<"\n";
+			//parseJoin(columns,table1,table2)
+			string table2 = yytext;
+			parseJoin(alias, table2, columns);
+			return alias+"_JOIN_"+table2;
 		}		
 		
 		while((mtoken != IDENTIFIER) && (mtoken!=SEMICOLON)){
