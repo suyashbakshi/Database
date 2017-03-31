@@ -1,1 +1,1 @@
-SELECT * FROM (SELECT * FROM (SELECT A,B FROM t1 ) t2) t3;
+quit

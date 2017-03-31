@@ -7,6 +7,10 @@
 #include "myvals.h"
 using namespace std;
 
+//TODO: 1. Cartesian product still left.
+//2. Checking datatype and primary key while insertion.
+//3. Checking if table already exists while creating.
+
 extern int yylex();
 extern int yylineno;
 extern char* yytext;
@@ -154,7 +158,6 @@ string x;
  	split(vec1[1],',',vec2); 
  	
  	bool* idx = new bool[vec2.size()];
- 	
  	//if only one column is to be selected from JOIN, then vec.size() remains zero
  	//and random values are assigned to idx which causes irregularity while selecting columns	
  	
@@ -172,9 +175,10 @@ string x;
  				break;
  			}
  		}
- 		if(flag==0)
+ 		if(flag==0){
+ 			cout<<"Marking false for "<<vec3[0]<<" i="<<i<<"\n";
  			idx[i]=false;
- 		
+ 		}
  	}
  	
  	//cout<<x<<std::endl;
@@ -695,6 +699,48 @@ void generateOutput(string source, string columns, string destination, int displ
 	}
 }
 
+//destination is the table into which the result of select has to be inserted
+//it should not be confused with alias for select query.
+//the alias for select query is a temporary table = "IS_TB.tbl"
+void insertWithSelect(string destination){
+
+	
+	int mtoken=yylex();
+	//now to parse the select inside an insert, we do not call select function,
+	//since there is not alias for with this query, the output will be shown on console.
+	//but we want it in the destination table. So we call function generateOutput with display flag set to 1.
+	
+	string columns;
+	columns = yytext;
+	while(mtoken=yylex() != FROM){
+		yymore;		
+		columns+=yytext;
+	}
+	cout<<"Columns "<<columns<<"\n";
+	
+	mtoken=yylex();
+	string source_tb = yytext;
+	string temp_table = source_tb+"_IS";
+	//TODO: modify for query with where clause
+	
+	generateOutput(source_tb,columns,temp_table,1,0,"","");
+	
+	//open file containing output of select.
+	ifstream f((temp_table+".tbl").c_str(),ios::in|ios::binary);
+	
+	//open file in which insert is to be done
+	ofstream file((destination+".tbl").c_str(), std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+	
+	
+	//TODO: Give an error if column count of (table inserting into) and (table selecting from) does not match
+	string x;
+	while(getline(f,x)){
+		file<<x<<"\n";
+	}
+	f.close();
+	file.close();	
+}
+
 
 
 string select(){
@@ -940,18 +986,43 @@ void insert(){
 	int nToken = yylex();
 	//cout<<nToken<<"\n";
 	string tablename;
-
+	string temp_tb;
 	if ((nToken = yylex())== IDENTIFIER){	
 		tablename=yytext;
+		temp_tb=tablename;
 		tablename+=".tbl";	
 		cout<<"Tablename is "<<tablename<<"\n";
+	}
+	
+	
+	ifstream ifs(tablename.c_str());
+
+	
+	if(!ifs){
+		cout<<"Error:"<<tablename<<" does not exist\n";
+		return;
 	}
 
 	//open .tbl file to write the record
 	ofstream file(tablename.c_str(), std::ios_base::out | std::ios_base::app | std::ios_base::binary);	
-
+	
+	
+	
+	
+	
 	//skip keyword VALUES
 	nToken = yylex();	//ntoken gets value = VALUES
+	
+	
+	//insert with a select detection
+	if(nToken == SELECT){
+		cout<<"Select detected";
+		insertWithSelect(temp_tb);
+		return;
+	}
+	
+	
+	
 	//cout<<nToken<<"\n";
 	//skip open brace
 	nToken = yylex();
@@ -967,7 +1038,6 @@ void insert(){
 				if(nToken==IDENTIFIER){
 					cout<<"Value : "<<yytext<<"\n";
 					row.append(yytext);
-					row.append(" ");
 				}
 				//skip closing '
 				if(nToken=yylex() != QUOTE){
@@ -977,6 +1047,7 @@ void insert(){
 				nToken=yylex();
 				if(nToken == COMMA){
 					nToken=yylex();
+					row.append(" ");
 				}
 				else{cout<<"Q/C "<<yytext<<"\n";}
 				break;
@@ -984,10 +1055,11 @@ void insert(){
 			case INTNUM:
 				cout<<"Value : "<<yytext<<"\n";
 				row.append(yytext);
-				row.append(" ");
+				
 				nToken=yylex();
 				if(nToken == COMMA){
 					nToken=yylex();
+					row.append(" ");
 				}
 				break;
 			
@@ -1002,7 +1074,7 @@ void insert(){
 	
 	
 	row+="\n";
-	cout<<"Row is : "<<row<<" Size: "<<row.size()<<"\n";
+	cout<<"Row is : "<<row<<"Size: "<<row.size()<<"\n";
 	file.write(row.c_str(), row.size());
 
 	file.close();
@@ -1015,6 +1087,24 @@ void insert(){
 	}
 	f.close();
 		
+}
+
+void tables(){
+	
+	ifstream f("catalog.txt",ios::in);
+	
+	string x;
+	while(getline(f,x)){
+		cout<<x<<"\n";
+		getline(f,x);
+		cout<<x<<"\n\n";
+		
+		getline(f,x);
+		getline(f,x);
+		
+	}
+	f.close();
+	
 }
 
 int main(){
@@ -1035,6 +1125,24 @@ int main(){
 		case INSERT:
 			cout<<"Going to insert into a table.\n";
 			insert();
+			break;
+		case SHOW:
+			ntoken=yylex();
+			if(ntoken==TABLES){
+				//callfunction tables()
+				tables();
+			}
+			else if(ntoken==TABLE){
+				ntoken=yylex();
+				string tablename = yytext;
+				//callfunction getColumnString(tablename)
+				
+				string cols=getColumnString(tablename);
+				cout<<"Tablename : "<<tablename<<"\n";
+				cout<<cols<<"\n";
+				
+				
+			}
 			break;
 		default:
 			cout<<"Unknown query.\n";

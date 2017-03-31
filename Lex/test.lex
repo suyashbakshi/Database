@@ -7,36 +7,69 @@ void yyerror(char *s);
 %}
 
 %%
-"AND"		{return AND;}
-"AS"		{return AS;}
-"BY"		{return BY;}
-"CHAR"		{return CHAR;}
-"CREATE"	{return CREATE;}
-"DISTINCT"	{return DISTINCT;}
-"DELETE"	{return DELETE;}
-"EXISTS"	{return EXISTS;}
-"FROM"		{return FROM;}
-"GROUP"		{return GROUP;}
-"HAVING"	{return HAVING;}
-"INSERT"	{return INSERT;}
-"INT"		{return INT;}
-"INTO"		{return INTO;}
-"KEY"		{return KEY;}
-"NOT"		{return NOT;}
-"NULLX"		{return NULLX;}
-"OR"		{return OR;}
-"ORDER"		{return ORDER;}
-"PRIMARY"	{return PRIMARY;}
-"SELECT"	{return SELECT;}
-"SHOW"		{return SHOW;}
-"TABLE"		{return TABLE;}
-"TABLES"	{return TABLES;}
-"UNIQUE"	{return UNIQUE;}
-"UPDATE"	{return UPDATE;}
-"VALUES"	{return VALUES;}
-"WHERE"		{return WHERE;}
+"AND"	|
+"and"		{return AND;}
+"AS"	|
+"as"		{return AS;}
+"BY"	|
+"by"		{return BY;}
+"CHAR"	|
+"char"		{return CHAR;}
+"CREATE"	|
+"create"	{return CREATE;}
+"DISTINCT"	|	
+"distinct"	{return DISTINCT;}
+"DELETE"	|
+"delete"	{return DELETE;}
+"EXISTS"	|
+"exists"	{return EXISTS;}
+"FROM"		|
+"from"		{return FROM;}
+"GROUP"		|
+"group"		{return GROUP;}
+"HAVING"	|
+"having"	{return HAVING;}
+"INSERT"	|
+"insert"	{return INSERT;}
+"INT"		|
+"int"		{return INT;}
+"INTO"		|
+"into"		{return INTO;}
+"JOIN"		|
+"join"		{return JOIN;}
+"KEY"		|
+"key"		{return KEY;}
+"NOT"		|
+"not"		{return NOT;}
+"NULLX"		|	
+"nullx"		{return NULLX;}
+"ON"		|
+"on"		{return ON;}
+"OR"		|
+"or"		{return OR;}
+"ORDER"		|	
+"order"		{return ORDER;}
+"PRIMARY"	|
+"primary"	{return PRIMARY;}
+"SELECT"	|
+"select"	{return SELECT;}
+"SHOW"		|
+"show"		{return SHOW;}
+"TABLE"		|
+"table"		{return TABLE;}
+"TABLES"	|
+"tables"	{return TABLES;}
+"UNIQUE"	|
+"unique"	{return UNIQUE;}
+"UPDATE"	|
+"update"	{return UPDATE;}
+"VALUES"	|
+"values"	{return VALUES;}
+"WHERE"		|
+"where"		{return WHERE;}
 
-"QUIT"		{exit(0);}
+"QUIT"		|
+"quit"		{exit(0);}
 
 "="	|
 "<>"	|

@@ -38,3 +38,7 @@
 #define IDENTIFIER	36
 #define INTNUM		37
 #define QUOTE		38
+
+#define JOIN		39
+#define ON		40
+#define JOIN_IDENTIFIER	41
