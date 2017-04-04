@@ -8,13 +8,15 @@
 #include "myvals.h"
 using namespace std;
 
-//TODO: 1. Cartesian product still left.
-//2. Checking datatype and primary key while insertion.	->	done
-//3. Checking if table already exists while creating.	->	done
-//4. datatype checking in insert with selects		->	done
-//5. Where clause in insertWithSelect			-> 	done
-//column name issue for joins
-//modify create function for new primary key format	-> 	done
+//TODO:
+//1. Checking datatype and primary key while insertion.	->	done
+//2. Checking if table already exists while creating.	->	done
+//3. datatype checking in insert with selects		->	done
+//4. Where clause in insertWithSelect			-> 	done
+//5. column name issue for joins
+//6. nested selects in insert.				->	done
+//7. drop table.					->	done
+
 extern int yylex();
 extern int yylineno;
 extern char* yytext;
@@ -22,7 +24,6 @@ extern int yymore;
 extern int input;
 extern FILE *yyin;
 
-string cat_update="";
 string matched;
 string select();
 void split(const string&, char c,vector<string>&);
@@ -116,6 +117,25 @@ bool tableExists( string table)
 	 return false;
 }
 
+void dropTable(string tablename){
+
+	struct list *p = start;
+	
+	if(p==NULL){
+		cout<<"No tables in catalog.\n";
+		return;
+	}
+	if(p->tablename == tablename){
+		start = p->next;
+		return;
+	}
+	while(p->next->tablename !=tablename){
+		p=p->next;
+	}
+	p->next = p->next->next;
+
+
+}
 
 void showTable( struct list *p, string table)
 {
@@ -211,6 +231,9 @@ void dump()
 			fout<<"totalsize="<<p->totalsize<<"\n";
 			fout<<"records="<<p->records<<"\n";
 			p=p->next ;
+		}
+		else{
+			p=p->next;
 		}
 	}
 	fout.close();
@@ -739,7 +762,8 @@ void parseJoin(string table1, string table2, string columns){
 				
 		/*-------------------------------------------------------*/
 		
-		
+		//TODO: get the next token here, and check if it is a where clause.
+		//if yes, get the value and column, and modify loops below.
 		
 		join(table1,table2,cc_idx1,cc_idx2);
 		
@@ -930,9 +954,7 @@ void generateOutput(string source, string columns, string destination, int displ
 			
 			//TODO: since we are creating temp tables here, we should check if the table does 
 			//not exist already, or we might overwrite an existing table.
-			
-			ifstream ifs(t_destination.c_str());
-			if(ifs){
+			if(tableExists(destination)){
 				cout<<"Error: Alias name "<<destination<<" already exists. Please use a different alias in the query.\n";
 				return;
 			}
@@ -944,6 +966,14 @@ void generateOutput(string source, string columns, string destination, int displ
 			string temp_tb = destination;
 			string append_columns="";
 			string temp_cols = getColumnString(source);
+			
+			
+			int *catInsertIdx = getColumnIntIndexes(source,columns);
+
+				
+			vector<string> size_vec;
+			split(columns,',',size_vec);
+			int size = size_vec.size();
 			
 			//check if where flag is set or not. if yes, determine the index of that column
 			//so while reading the data we can compare the value at that index
@@ -958,29 +988,26 @@ void generateOutput(string source, string columns, string destination, int displ
 			
 
 			if(columns!="*"){
-				temp_cols=columns;
 				
-				vector<string> vec;
-				split(temp_cols,',',vec);
+				vector<string> col_vec;
+				split(temp_cols,',',col_vec);
 				
-				if(vec.size()==0){
-					append_columns.append(temp_cols+":Type");
-				}
-				
-				
-				//add column names to catalog
-				for(int i=0; i<vec.size(); i++){
-				
-					if(i==vec.size()-1)
-						append_columns.append(temp_cols+":Type");
+				for(int i=0;i<size;i++){
+					append_columns.append(col_vec[catInsertIdx[i]]);
 					
-					else
-						append_columns.append(temp_cols+":Type,");
+					if(i!=size-1)
+						append_columns.append(",");
+				
 				}
+				
+				
+				
 			}
 			else if(columns=="*"){
 				append_columns = temp_cols;
 			}
+			
+			
 			
 			append(temp_tb,append_columns,"",0,0,0,1);			
 			cout<<"Entry for temp table "<<destination<<" added to catalog"<<std::endl;
@@ -992,11 +1019,8 @@ void generateOutput(string source, string columns, string destination, int displ
 			
 			//temp file to write data into
 			ofstream fout;
-			fout.open(t_destination.c_str(),std::ios_base::app);
-				
-			vector<string> size_vec;
-			split(columns,',',size_vec);
-			int size = size_vec.size();
+			fout.open(t_destination.c_str(),ios::out);
+
 			
 			if(columns=="*"){
 				//cout<<"inside if";	
@@ -1094,8 +1118,16 @@ void insertWithSelect(string destination){
 	
 	//TODO: here add logic to detect if next token is a IDENTIFIER(tablename) or an OPENBRACE to detect nested select.
 	
-	mtoken=yylex();
+	mtoken=yylex();	
 	string source_tb = yytext;
+		
+	if(mtoken==OPENBRACE){
+		mtoken=yylex();
+		if(mtoken==SELECT){
+			source_tb=select();
+		}
+	}
+
 	string temp_table = source_tb+"_IS_"+columns;
 	
 	
@@ -1292,7 +1324,6 @@ void insertWithSelect(string destination){
 		
 		if(checkPKViolation(destination,x,mIndex[0])){
 			cout<<"Inserting "<<x<<"\n";
-			cat_update.append(destination+"/");
 			file<<x<<"\n";
 		}
 	}
@@ -1709,7 +1740,6 @@ void insert(){
 		return;
 	}
 	
-	cat_update.append(temp_tb+"/");
 	
 	file.write(row.c_str(), row.size());
 
@@ -1750,7 +1780,6 @@ void tables(){
 
 int main(int argc, char **argv){
 
-	//TODO: Do this
 	load();
 	
 	//set the lex input to the file specified in arguments
@@ -1761,25 +1790,28 @@ int main(int argc, char **argv){
 	
 	int ntoken = yylex();
 	
-	while(ntoken){
+//	while(ntoken){
 
 		switch(ntoken){
-			case CREATE:
+			case CREATE:{
 				cout<<"\n\nGoing to create a table.\n";
 				create();	
 				break;
+			}
 			case SELECT:{
 				cout<<"\n\nGoing to select from a table.\n";
 				string f_table=select();
-				cout<<"Final select will be done from table "<<f_table<<"\n";
+				cout<<"Final select will be done from table "<<f_table<<"\nhere";
+				//ntoken=yylex();
 				break;
-				}		
-			case INSERT:
+			}		
+			case INSERT:{
 				cout<<"\n\nGoing to insert into a table.\n";
 				insert();
 				
 				break;
-			case SHOW:
+			}
+			case SHOW:{
 				
 				ntoken=yylex();
 				if(ntoken==TABLES){
@@ -1795,13 +1827,26 @@ int main(int argc, char **argv){
 					
 				}
 				break;
-			default:
+			}
+			case DROP:{
+				ntoken=yylex();
+				if(ntoken==TABLE){
+					ntoken=yylex();
+					dropTable(yytext);
+				}
+				break;
+			}
+			default:{
 				cout<<"Unknown query.\n";
 				break;
+			}
 		}
-
+		cout<<"\nToken "<<ntoken<<"\n";
+		ntoken=yylex();
+		cout<<"\nToken "<<ntoken<<"\n";
+		
 		//TODO: Do a while loop until next create|select|insert|show token is encountered.
 		//then continue again.
-	}
+//	}
 	dump();	
 }

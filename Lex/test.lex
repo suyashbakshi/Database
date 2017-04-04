@@ -21,6 +21,8 @@ void yyerror(char *s);
 "distinct"	{return DISTINCT;}
 "DELETE"	|
 "delete"	{return DELETE;}
+"DROP"		|
+"drop"		{return DROP;}
 "EXISTS"	|
 "exists"	{return EXISTS;}
 "FROM"		|

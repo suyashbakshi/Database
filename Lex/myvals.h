@@ -42,3 +42,4 @@
 #define JOIN		39
 #define ON		40
 #define JOIN_IDENTIFIER	41
+#define DROP		42
