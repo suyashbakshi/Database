@@ -43,3 +43,6 @@
 #define ON		40
 #define JOIN_IDENTIFIER	41
 #define DROP		42
+#define QUIT		43
+#define COMMENT_START	44
+#define COMMENT_END	45

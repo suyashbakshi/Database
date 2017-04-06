@@ -71,7 +71,7 @@ void yyerror(char *s);
 "where"		{return WHERE;}
 
 "QUIT"		|
-"quit"		{exit(0);}
+"quit"		{return QUIT;}
 
 "="	|
 "<>"	|
@@ -87,6 +87,8 @@ void yyerror(char *s);
 "("		{return OPENBRACE;}
 ")"		{return CLOSEBRACE;}
 "*"		{return STAR;}
+"/*"		{return COMMENT_START;}
+"*/"		{return COMMENT_END;}
 
 "'"		{return QUOTE;}
 

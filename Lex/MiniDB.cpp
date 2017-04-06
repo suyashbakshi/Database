@@ -1259,7 +1259,7 @@ void insertWithSelect(string destination){
 		
 		if(count_d != count_s){
 		
-			cout<<"Error column count mismatch\n";
+			cout<<"Error column count mismatch.\nRequired "<<count_d<<". Found "<<count_s<<"\n";
 			return;
 		}
 		{
@@ -1955,6 +1955,15 @@ int main(int argc, char **argv){
 					dropTable(yytext);
 				}
 				break;
+			}
+			case QUIT:{
+				dump();
+				exit(0);
+			}
+			case COMMENT_START:{
+				while(ntoken != COMMENT_END){
+					ntoken=yylex();
+				}
 			}
 			default:{
 				cout<<"Unknown query.\n";
