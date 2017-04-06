@@ -10,6 +10,10 @@
 using namespace std;
 
 //TODO:
+//comment ignoring
+//looping to execute multiple queries
+//output.txt file generation
+
 //1. Checking datatype and primary key while insertion.	->	done, working, and tested
 //2. Checking if table already exists while creating.	->	done, working, and tested
 //3. datatype checking in insert with selects		->	done, working, and tested
@@ -17,11 +21,9 @@ using namespace std;
 //5. column name issue for JOINS
 //6. nested selects in insert.				->	done, working, and tested
 //7. drop table.					->	done, working, and tested
-//8. nested joins
+//8. nested joins					->	done, working, not tested thoroughly
 //9. where clause in JOINS				->	done, working, and tested
-//10.order of comparison columns in JOINS
-//11.Unique value selection				->	done, working, and tested
-//12.Check if tables for join have columns(except PK) with same name, if they do, then only add prefixes to their name.
+//10.order of comparison columns in JOINSinsert()	->	done, working, and tested
 extern int yylex();
 extern int yylineno;
 extern char* yytext;
@@ -33,9 +35,10 @@ string matched;
 set<string> s;
 set<string>::iterator it;
 string select();
+void generateOutput(string, string, string, int, int, string, string,int);
 void split(const string&, char c,vector<string>&);
 
-
+ofstream output("Output.txt",ios::out);
 
 /*this area for catalog_list functions*/
 /*-----------------------------------------------------------------------------------------*/
@@ -49,10 +52,11 @@ struct list
     int totalsize;
     int records;
     int is_temp;
+    int is_join;
     struct list *next;
 };
 
-struct list *newList(string tablename,string columns,string pk,int recSize,int totalsize,int records,int is_temp)
+struct list *newList(string tablename,string columns,string pk,int recSize,int totalsize,int records,int is_temp,int is_join)
 {
     struct list *temp =  new list;
     temp->tablename = tablename;
@@ -62,16 +66,17 @@ struct list *newList(string tablename,string columns,string pk,int recSize,int t
     temp->totalsize= totalsize;
     temp->records=records;
     temp->is_temp=is_temp;
+    temp->is_join=is_join;
     temp->next=NULL;
     return temp;
 }
 
 struct list *start=NULL;
 
-void append(string tablename,string columns,string pk,int recSize,int totalsize,int records,int is_temp)
+void append(string tablename,string columns,string pk,int recSize,int totalsize,int records,int is_temp,int is_join)
 {
     	struct list *p=start , *n;
-    	n = newList(tablename,columns,pk,recSize,totalsize,records,is_temp);
+    	n = newList(tablename,columns,pk,recSize,totalsize,records,is_temp,is_join);
 	n->next = NULL;
 	if ( start == NULL )
 	{
@@ -232,6 +237,25 @@ string getPrimaryKey(string tablename)
 	 cout<<"\nTable "<<tablename<<" not found\n";
 }
 
+int getIsJoin(string tablename)
+{
+	 struct list *p = start;
+
+	 if ( p == NULL)
+	 {
+	 	cout<<"Empty list.\n";
+		return 0;
+	 }
+	 while ( p != NULL )
+	 {	
+	 	if(p->tablename==tablename){
+	 		return p->is_join;
+	 	}
+	 	p=p->next;
+	 }
+	 return 0;
+}
+
 void dump()
 {
 	ofstream fout;
@@ -296,10 +320,57 @@ void load(){
 		vector<string> records;
 		split(x,'=',records);
 		
-		append(tablename[1],columns[1],pk[1],atoi(recordsize[1].c_str()),atoi(totalsize[1].c_str()),atoi(records[1].c_str()),0);
+		append(tablename[1],columns[1],pk[1],atoi(recordsize[1].c_str()),atoi(totalsize[1].c_str()),atoi(records[1].c_str()),0,0);
 	}
 
 }
+
+void modifyJoinColumnName(string tablename)
+{
+	  struct list *p = start ;
+	  if ( p == NULL)
+	  {
+	  	cout<<"\nEmpty link node ";
+		return;
+	  }
+	  while ( p != NULL )
+	  {
+	  	if ( tablename == p->tablename )
+	 	{
+	 		
+	 		//logic to change prefixes of columns here.
+	 		string columns = p->columns;
+	 		
+	 		vector<string> cols;
+	 		split(columns,',',cols);
+	 		
+	 		string nCols;
+	 		for(int i=0;i<cols.size();i++){
+	 		
+	 			vector<string> c1;
+	 			split(cols[i],':',c1);
+	 		
+	 			vector<string> c2;
+	 			split(c1[0],'.',c2);
+	 			
+	 			if(i==cols.size()-1)
+	 				nCols.append(tablename+"."+c2[1]+":"+c1[1]);
+	 			else
+	 				nCols.append(tablename+"."+c2[1]+":"+c1[1] + ",");
+	 		
+	 		}
+	 		p->columns=nCols;
+	 		
+	 		
+	 		
+	 		return;
+		}
+		p = p->next ;
+	  }
+	  cout<<"\nElement not found ";
+}
+
+
 
 
 
@@ -347,9 +418,9 @@ void inorder(struct node *root, string mKey)
         	matched.append(root->val);
         	matched.append("/");
         }
-        else if(root->key > mKey){
+        /*else if(root->key > mKey){
         	return;
-        }
+        }*/
         inorder(root->right, mKey);
     }
 }
@@ -395,41 +466,6 @@ void split(const string& s, char c,vector<string>& v) {
 /*-----------------------------------------------------------------------------------------*/
 
 
-/*string getPrimaryKey(string tablename){
-
- string x;
- ifstream f("catalog.txt",ios::in | ios::binary);
- int i=1,flag=0;
- 
- //first find the table in catalog
- while(getline(f,x)){
- 	//cout<<x<<std::endl;
- 	size_t found = x.find(tablename.c_str());
- 	if (found!=string::npos){
- 		//cout << "tablename found in "<<i<<"th iteration at : " << found << '\n';
- 		flag=1;
-		break;
- 	}
- 	else{
- 		getline(f,x);
- 		getline(f,x);
- 		getline(f,x);
- 		i++;
- 	}
- }
- 
- //if table is found, retrun the line containing colmn information
- if(flag==1){
- 	getline(f,x);
- 	getline(f,x);
- 	vector<string> v1;
- 	split(x,'=',v1);
- 	return v1[1];
- }
-	
-
-}*/
-
 
 /*function to check if the new data violates primary key constraint*/
 /*-----------------------------------------------------------------------------------------*/
@@ -440,7 +476,7 @@ bool checkPKViolation(string tablename,string row, int pkIdx){
 	split(row,' ',pk);
 
 	string x;
-	ifstream f((tablename+".tbl").c_str(),ios::in | ios::binary);
+	ifstream f((tablename+".tbl.bin").c_str(),ios::in | ios::binary);
 	while(getline(f,x)){
 	
 		vector<string> mrow;
@@ -458,37 +494,6 @@ bool checkPKViolation(string tablename,string row, int pkIdx){
 
 /*-----------------------------------------------------------------------------------------*/
 
-/*string getColumnString(string tablename){
-
- string x;
- ifstream f("catalog.txt",ios::in | ios::binary);
- int i=1,flag=0;
- 
- //first find the table in catalog
- while(getline(f,x)){
- 	//cout<<x<<std::endl;
- 	size_t found = x.find(tablename.c_str());
- 	if (found!=string::npos){
- 		//cout << "tablename found in "<<i<<"th iteration at : " << found << '\n';
- 		flag=1;
-		break;
- 	}
- 	else{
- 		getline(f,x);
- 		getline(f,x);
- 		getline(f,x);
- 		i++;
- 	}
- }
- 
- //if table is found, retrun the line containing colmn information
- if(flag==1){
- 	getline(f,x);
- 	return x;
- }
-
-}*/
-
 
 /*Helper function that returns indexes of columns that need to be accessed from the specified table*/
 /*-----------------------------------------------------------------------------------------*/
@@ -505,8 +510,19 @@ int* getColumnIntIndexes(string tablename, string columns){
  	vector<string> vec2;
  	split(x,',',vec2); 
  	
+ 	cout<<"Stored Columns are : "<<x<<"\n";
+ 	cout<<"Queries Columns are : "<<columns<<"\n";
+ 	
  	int* idx = new int[vec.size()];	
  	
+ 	int is_join = getIsJoin(tablename);
+ 	
+	int has_dot;
+	
+	if(x.find('.') != string::npos)
+		has_dot=1;
+	else
+		has_dot=0;
  	
  	int flag;
  	for(int i=0; i<vec.size(); i++){
@@ -516,12 +532,36 @@ int* getColumnIntIndexes(string tablename, string columns){
  		 			
  			vector<string> vec3;
  			split(vec2[j],':',vec3);
- 			//cout<<"vec3[0] is "<<vec3[0]<<"\n";
- 			if(vec3[0] == vec[i]){
- 				idx[i]=j;
- 				flag=1;
- 				//cout<<"\n"<<j<<" is in columns\n";
- 				break;
+ 			
+ 			if(is_join == 0){
+ 				if(has_dot==0){
+ 					if(vec[i].find(vec3[0]) != string::npos){
+ 					//if(vec3[0] == vec[i]){
+ 						idx[i]=j;
+ 						flag=1;
+ 						//cout<<"\n"<<j<<" is in columns\n";
+ 						break;
+ 					}
+ 				}
+ 				else if(has_dot==1){
+ 					if(vec3[0].find(vec[i]) != string::npos){
+ 					//if(vec3[0] == vec[i]){
+ 						idx[i]=j;
+ 						flag=1;
+ 						//cout<<"\n"<<vec[i]<<" is in columns\n";
+ 						break;
+ 					}
+
+ 				}
+ 			}
+ 			else if(is_join == 1){
+ 				if(vec3[0].find(vec[i]) != string::npos){
+ 				//if(vec3[0] == vec[i]){
+ 					idx[i]=j;
+ 					flag=1;
+ 					cout<<"\n"<<vec[i]<<" is in columns at index "<<j<<"\n";
+ 					break;
+ 				}
  			}
  		}
  		if(flag==0){
@@ -537,110 +577,6 @@ int* getColumnIntIndexes(string tablename, string columns){
 /*-----------------------------------------------------------------------------------------*/
 
 
-/*bool* getColumnIndexes(string tablename, string columns){
-
-cout<<"Table "<<tablename<<" Columns "<<columns;
-string x;
- ifstream f("catalog.txt",ios::in | ios::binary);
- int i=1,flag=0;
- 
- //first find the table in catalog
- while(getline(f,x)){
- 	//cout<<x<<std::endl;
- 	size_t found = x.find(tablename.c_str());
- 	if (found!=string::npos){
- 		//cout << "tablename found in "<<i<<"th iteration at : " << found << '\n';
- 		flag=1;
-		break;
- 	}
- 	else{
- 		getline(f,x);
- 		getline(f,x);
- 		getline(f,x);
- 		i++;
- 	}
- }
- 
- //if table is found, find the indexes of columns that need to be accessed
- if(flag==1){
- 	getline(f,x);
- 	
- 	vector<string> vec;
- 	split(columns,',',vec); //A C D G
- 	
- 	//split columns "=" A:INT...
- 	vector<string> vec1;
- 	split(x,'=',vec1);
- 	//split the columns: A:INT <> B:CHAR <> C:INT
- 	vector<string> vec2;
- 	split(vec1[1],',',vec2); 
- 	
- 	bool* idx = new bool[vec2.size()];	
- 	
- 	
- 	int flag;
- 	for(int i=0; i<vec2.size(); i++){
- 		flag=0;
- 		vector<string> vec3;
- 		split(vec2[i],':',vec3); //A
- 		for(int j=0; j<vec.size(); j++){
- 			if(vec3[0] == vec[j]){
- 				idx[i]=true;
- 				flag=1;
- 				cout<<"\n"<<vec3[0]<<" is in columns\n";
- 				break;
- 			}
- 		}
- 		if(flag==0){
- 			cout<<"Marking false for "<<vec3[0]<<" i="<<i<<"\n";
- 			idx[i]=false;
- 		}
- 	}
- 	
- 	//cout<<x<<std::endl;
-	
-	/*char* pch = strtok((char*)x.c_str(),"=:, ");
-	int j=0, k=0;
-	string mcol[50];
-	
-	string col;
-	while (pch != NULL)
-  	{
-    		//add only the column names to the array mcol
-    		if(j%2==1){
-    			cout<<col<<"\n";
-    			col=pch;
-    			mcol[k]=col;
-    			k+=1;
-    		}
-    		pch = strtok (NULL, "=:, ");
-    		j++;
-  	}
-  	//cout<<"Col array length "<<k<<"\n";
-  	
-  	bool* idx = new bool[k];
-  	//mark columns that need to be selected as true, and rest as false
-  	for(int l=0;l<k;l++){
-  		//cout<<l<<" "<<mcol[l]<<"\n";
-		if(columns.find(mcol[l]) != string::npos){
-			//cout<<mcol[l]<<" is in Columns\n";
-			idx[l]=true;
-		}
-		else{
-			idx[l]=false;
-		}
-    	}
-    	//for(int m=0;m<k;m++)
-    	//	cout<<idx[m]<<"\n";
-  	
-  	return idx;
-  	
-	
- }
- f.close();
-
-}*/
-
 
 /*the join() function only creates the join table using "NODE" tree and terminates. Selection of relevant columns is done later by parseJoin()*/
 /*-----------------------------------------------------------------------------------------*/
@@ -650,8 +586,8 @@ void join(string table1, string table2, int cc_idx1, int cc_idx2){
    string tempT1 = table1, tempT2 = table2;
 
    struct node *root = NULL;
-   table1+=".tbl";
-   table2+=".tbl";
+   table1+=".tbl.bin";
+   table2+=".tbl.bin";
    
    //read file 1 and generate tree
    ifstream f(table2.c_str(),std::ios::in | std::ios::binary);
@@ -664,7 +600,6 @@ void join(string table1, string table2, int cc_idx1, int cc_idx2){
    	vector<string> vec1;
    	split(x,' ',vec1);
    	insert(root, vec1[cc_idx2], x);
-   
    }
     
    
@@ -674,7 +609,7 @@ void join(string table1, string table2, int cc_idx1, int cc_idx2){
    ifstream f1(table1.c_str(),std::ios::in | std::ios::binary);  
    string x1;
    
-   ofstream fout((tempT1+tempT2+".tbl").c_str(),std::ios::out | std::ios::binary);
+   ofstream fout((tempT1+tempT2+".tbl.bin").c_str(),std::ios::out | std::ios::binary);
      
    //do inorder traversal for each row in file 2.
    while(getline(f1,x1)){
@@ -682,7 +617,7 @@ void join(string table1, string table2, int cc_idx1, int cc_idx2){
   
    	vector<string> vec2;
    	split(x1,' ',vec2);
-   	cout<<"Will now check common columns for : "<<x1<<std::endl;
+   	cout<<"Will now check common columns for : "<<x1<<" KEY : "<<vec2[cc_idx1]<<std::endl;
    	
    	//inorder traversal gives all the rows with common key in file f and f1 
    	//here vec2[0] is the common column with file f.
@@ -692,7 +627,7 @@ void join(string table1, string table2, int cc_idx1, int cc_idx2){
    	split(matched,'/',vec3);
    	
    	if(vec3.size()>0){
-   		cout<<"Matched rows are: "<<std::endl;
+   		cout<<"Matched rows are: "<<matched<<"\n";
    		for(int i=0;i<vec3.size()-1;i++){
    			fout<<x1<<" "<<vec3[i]<<std::endl;
    			cout<<vec3[i]<<std::endl;
@@ -700,6 +635,7 @@ void join(string table1, string table2, int cc_idx1, int cc_idx2){
    	}
    	cout<<matched<<"\n";
    }
+   fout.close();
 
 }
 
@@ -710,7 +646,7 @@ void join(string table1, string table2, int cc_idx1, int cc_idx2){
 /*it then uses this joint table to select relevant columns(passed as 3rd param)*/
 /*-----------------------------------------------------------------------------------------*/
 
-void parseJoin(string table1, string table2, string columns){
+string parseJoin(string table1, string table2, string columns){
 	
 	
 	/*if token after join is a select statement, we call select function which generates output of select query in the alias table given.*/
@@ -733,6 +669,11 @@ void parseJoin(string table1, string table2, string columns){
 	string columnT1 = getColumnString(table1);
 	string columnT2 = getColumnString(table2);
 	
+	int t1_isJoin = getIsJoin(table1);
+	int t2_isJoin = getIsJoin(table2);
+	
+	//int commonName = checkCommonNames(columnT1,columnT2);
+	
 	vector<string> v1;
 	split(columnT1,',',v1);
 	
@@ -742,18 +683,37 @@ void parseJoin(string table1, string table2, string columns){
 	string join_tb_name = table1+table2;
 	string append_columns="";
 	
-	for(int i=0;i<v1.size(); i++){
-		append_columns.append(table1+"."+v1[i]+",");
+	if(t1_isJoin==1){
+		for(int i=0;i<v1.size(); i++){
+			append_columns.append(v1[i]+",");
+		}
+	}
+	else{
+		for(int i=0;i<v1.size(); i++){
+			append_columns.append(table1+"."+v1[i]+",");
+		}
 	}
 	
-	for(int i=0;i<v2.size(); i++){
-		if(i==v2.size()-1)
-			append_columns.append(table2+"."+v2[i]+",");
-		else
-			append_columns.append(table2+"."+v2[i]+",");
+	if(t2_isJoin==1){
+		for(int i=0;i<v2.size(); i++){
+			if(i==v2.size()-1)
+				append_columns.append(v2[i]+",");
+			else
+				append_columns.append(v2[i]+",");
+		}
+	}
+	else{
+	
+		for(int i=0;i<v2.size(); i++){
+			if(i==v2.size()-1)
+				append_columns.append(table2+"."+v2[i]+",");
+			else
+				append_columns.append(table2+"."+v2[i]+",");
+		}
+	
 	}
 	
-	append(join_tb_name,append_columns,"",0,0,0,1);	
+	append(join_tb_name,append_columns,"",0,0,0,1,1);	
 	
 	/*-------------------------------------------------------*/
 
@@ -764,26 +724,80 @@ void parseJoin(string table1, string table2, string columns){
 		
 		
 		mtoken=yylex();
-		mtoken=yylex();
-		mtoken=yylex();
+		
+		cout<<"YYTEXT "<<yytext<<"\n";
+		
+		string t1_col,t2_col;
+		int cc_idx1,cc_idx2;
 		
 		/*first we get indexes of common columns for comparison*/
 		/*-------------------------------------------------------*/
+		/* we also check the order in which comparison columns are given.*/	
+		
+		if(yytext == table1){
+			cout<<"Table 1 is first\n";
+			mtoken=yylex();
+			mtoken=yylex();
 			
-		string t1_col = yytext;
-		int *col_idx1 = getColumnIntIndexes(table1,t1_col);
-		int cc_idx1 = col_idx1[0];
+			if(t1_isJoin==0){
+				t1_col = yytext;
+			}
+			else{
+				t1_col = table1+"."+yytext;
+			}		
+			
+			int *col_idx1 = getColumnIntIndexes(table1,t1_col);
+			cc_idx1 = col_idx1[0];
+			
+			mtoken=yylex();
+			mtoken=yylex();
+			mtoken=yylex();
+			mtoken=yylex();
+			
+			if(t2_isJoin==0){
+				t2_col = yytext;
+			}
+			else{
+				t2_col = table2+"."+yytext;
+			}
+			int *col_idx2 = getColumnIntIndexes(table2,t2_col);
+			cc_idx2 = col_idx2[0];
+					
 	
-		mtoken=yylex();
-		mtoken=yylex();
-		mtoken=yylex();
-		mtoken=yylex();
+		}
+		else if(yytext == table2){
+			cout<<"Table 2 is first\n";
+			mtoken=yylex();
+			mtoken=yylex();
+			
+			if(t2_isJoin==0){
+				t2_col = yytext;
+			}
+			else{
+				t2_col = table2+"."+yytext;
+			}		
+			
+			int *col_idx2 = getColumnIntIndexes(table2,t2_col);
+			cc_idx2 = col_idx2[0];
+			
+			mtoken=yylex();
+			mtoken=yylex();
+			mtoken=yylex();
+			mtoken=yylex();
+			
+			
+			if(t1_isJoin==0){
+				t1_col = yytext;
+			}
+			else{
+				t1_col = table1+"."+yytext;
+			}
+			int *col_idx1 = getColumnIntIndexes(table1,t1_col);
+			cc_idx1 = col_idx1[0];
+		}
 		
 		
-		string t2_col = yytext;
-		int *col_idx2 = getColumnIntIndexes(table2,t2_col);
-		int cc_idx2 = col_idx2[0];
-				
+		
 		/*-------------------------------------------------------*/
 		
 		//TODO: get the next token here, and check if it is a where clause.
@@ -819,114 +833,38 @@ void parseJoin(string table1, string table2, string columns){
 		
 		}
 		
-		//TODO: after where, detect if there is a semicolon, or closing brace
-		//if semicolon, then its a simple query.
-		//1. write the output on console
-		
-		//if closing brace, then its a nested JOIN query, and next token is the alias.
-		//1. You should first write the output in file named as alias.
-		//2. Next, Modify column names of joinTable to have new prefixes as alias.
-		
+		string joinAlias="";
+		int isNested=0;
+		if(mtoken==CLOSEBRACE){
+			isNested=1;
+			mtoken=yylex();
+			joinAlias=yytext;		
+		}
 		join(table1,table2,cc_idx1,cc_idx2);
 		
 		cout<<"The columns to be selectd from join are "<<columns<<"\n";
 		
-		vector<string> size_vec;
-		split(columns,',',size_vec);
+		if(isNested){
 		
-		int size=size_vec.size();
-		
-		int* idx;
-		
-		string joinTable = table1+table2+".tbl";
-		ifstream f(joinTable.c_str(), ios::in | ios::binary);
-		cout<<"Size is"<<size<<"\n";
-		
-		if(where_flag==0){
-			if(columns != "*"){
-				idx=getColumnIntIndexes(table1+table2, columns);
-				
-				
-				string x;
-				while(getline(f,x)){
-					vector<string> vec5;
-					split(x,' ',vec5);
-					cout<<"X is "<<x<<"\n";
-					for(int i=0; i<size; i++){
-							cout<<vec5[idx[i]]<<" ";
-					}
-					cout<<"\n";
-				}
-			}	
-			else if(columns=="*"){
-				cout<<"Select all\n";
-				string x;
-				while(getline(f,x)){
-					cout<<x<<"\n";
-				}
-			}
+			generateOutput(table1+table2,columns,joinAlias,1,where_flag,wCol,wVal,1);
+			modifyJoinColumnName(joinAlias);
+			return joinAlias;
 		}
-		else if(where_flag==1){
-			
-			if(columns != "*"){
-				idx=getColumnIntIndexes(table1+table2, columns);
-				
-				
-				string x;
-				while(getline(f,x)){
-					vector<string> vec5;
-					split(x,' ',vec5);
-					cout<<"X is "<<x<<"\n";
-					
-					if(vec5[wIdx]==wVal){
-					
-						for(int i=0; i<size; i++){
-								cout<<vec5[idx[i]]<<" ";
-						}
-						cout<<"\n";
-					}
-				}
-			}	
-			else if(columns=="*"){
-				cout<<"Select all\n";
-				string x;
-				while(getline(f,x)){	
-					vector<string> vec5;
-					split(x,' ',vec5);
-					
-					if(vec5[wIdx]==wVal){
-						cout<<x<<"\n";
-					}
-				
-				}
-			}
+		else{
+			output<<"Selecting columns "<<columns<<" from "<<table1+table2<<"\n";
+			generateOutput(table1+table2,columns,joinAlias,0,where_flag,wCol,wVal,0);
+			output<<"----------------------------------\n";
+			return table1+table2;
 		}
 		
+		
+		
+				
 		
 		
 		
 	}
-	
-	
-	/*this else if was meant for cartesian product in case the query does not have an "ON" clause*/
-	/*else if(mtoken==SEMICOLON){
-		cout<<"Semicolon detected\n";
 		
-		ifstream f1((table1+".tbl").c_str(), ios::in);
-		ifstream f2((table2+".tbl").c_str(), ios::in);
-		ofstream fout((table1+".tbl_join_"+table2+".tbl.tbl").c_str(),ios::out | ios::binary);
-		
-		string x1;
-		while(getline(f1,x1)){
-			string x2;
-			while(getline(f2,x2)){
-				cout<<x1<<" "<<x2<<"\n";
-			}			
-		}
-		f1.close();
-		f2.close();
-		fout.close();		
-	}*/	
 }
 
 /*-----------------------------------------------------------------------------------------*/
@@ -936,10 +874,10 @@ void parseJoin(string table1, string table2, string columns){
 depending on the query*/		
 /*-----------------------------------------------------------------------------------------*/
 
-void generateOutput(string source, string columns, string destination, int display_flag, int where_flag, string wCol, string wVal){
+void generateOutput(string source, string columns, string destination, int display_flag, int where_flag, string wCol, string wVal,int is_join){
 
-	string t_source=source+".tbl";
-	string t_destination=destination+".tbl";
+	string t_source=source+".tbl.bin";
+	string t_destination=destination+".tbl.bin";
 	
 	switch(display_flag){
 	
@@ -970,9 +908,10 @@ void generateOutput(string source, string columns, string destination, int displ
 						vector<string> v_col2;
 						split(v_col1[i],':',v_col2);					
 						cout<<v_col2[0]<<" | ";
+						output<<v_col2[0]<<" | ";
 				}
 				cout<<"\n-------\n";
-				
+				output<<"\n-------\n";
 				
 				string x;
 				while( getline(f,x)){
@@ -993,8 +932,10 @@ void generateOutput(string source, string columns, string destination, int displ
 					
 					}	
 				}
-				for (it=s.begin(); it!=s.end(); ++it)
+				for (it=s.begin(); it!=s.end(); ++it){
     					cout <<*it<<"\n";
+    					output<<*it<<"\n";
+    				}
     				s.clear();
 				
 			}
@@ -1018,9 +959,10 @@ void generateOutput(string source, string columns, string destination, int displ
 						vector<string> v_col2;
 						split(v_col1[idx[i]],':',v_col2);					
 						cout<<v_col2[0]<<" | ";
+						output<<v_col2[0]<<" | ";
 				}
 				cout<<"\n-------\n";
-				
+				output<<"\n-------\n";
 				
 				//now read each line of source file.
 				//then for each line, output the word of index that is marked true to the destination file
@@ -1056,8 +998,10 @@ void generateOutput(string source, string columns, string destination, int displ
    					}
    					
 				}
-				for (it=s.begin(); it!=s.end(); ++it)
-    					cout <<*it<<"\n";	
+				for (it=s.begin(); it!=s.end(); ++it){
+    					cout <<*it<<"\n";
+    					output<<*it<<"\n";
+    				}	
 				
 				s.clear();
 				
@@ -1128,9 +1072,8 @@ void generateOutput(string source, string columns, string destination, int displ
 			
 			
 			
-			append(temp_tb,append_columns,"",0,0,0,1);			
+			append(temp_tb,append_columns,"",0,0,0,1,is_join);			
 			cout<<"Entry for temp table "<<destination<<" added to catalog"<<std::endl;
-			
 			
 			//file to read data from
 			ifstream f(t_source.c_str(),std::ios::in | std::ios::binary);
@@ -1166,7 +1109,6 @@ void generateOutput(string source, string columns, string destination, int displ
 					}	
 				}
 				for (it=s.begin(); it!=s.end(); ++it){
-    					//std::cout <<*it<<"\n";
     					fout<<*it<<"\n";
     	
     				}
@@ -1233,15 +1175,15 @@ void generateOutput(string source, string columns, string destination, int displ
 				}
 				for (it=s.begin(); it!=s.end(); ++it){
     					//std::cout <<*it<<"\n";
+    					
+    					cout<<"Putting "<<*it<<"\n";
     					fout<<*it<<"\n";
     	
     				}
-    				s.clear();
-				//cout<<"print after while ends\n";				
+    				s.clear();				
 			}
 			f.close();
 			fout.close();
-			//cout<<"print before break";
 			break;
 		}
 
@@ -1254,7 +1196,7 @@ void generateOutput(string source, string columns, string destination, int displ
 
 //destination is the table into which the result of select has to be inserted
 //it should not be confused with alias for select query.
-//the alias for select query is a temporary table = "_IS.tbl"
+//the alias for select query is a temporary table = "_IS.tbl.bin"
 /*-----------------------------------------------------------------------------------------*/
 void insertWithSelect(string destination){
 
@@ -1274,7 +1216,7 @@ void insertWithSelect(string destination){
 	
 	//TODO: here add logic to detect if next token is a IDENTIFIER(tablename) or an OPENBRACE to detect nested select.
 	
-	mtoken=yylex();	
+	mtoken=yylex();
 	string source_tb = yytext;
 		
 	if(mtoken==OPENBRACE){
@@ -1282,6 +1224,15 @@ void insertWithSelect(string destination){
 		if(mtoken==SELECT){
 			source_tb=select();
 		}
+	}
+	mtoken=yylex();
+	if(mtoken==JOIN){
+		
+		mtoken=yylex();
+		cout<<"Insert with select "<<source_tb<<" "<<yytext<<"\n";
+		source_tb=parseJoin(source_tb,yytext,columns);
+		cout<<"JOIN PARSING COMPLETE\n";
+		columns="*";
 	}
 
 	string temp_table = source_tb+"_IS_"+columns;
@@ -1443,8 +1394,11 @@ void insertWithSelect(string destination){
 	
 	}
 	
-	//TODO: modify for query with where clause -> DONE
+	//TODO: modify for query with JOIN
 	mtoken=yylex();
+	
+	
+	
 	if(mtoken==WHERE){
 		mtoken = yylex();
 		string where_col=yytext;
@@ -1457,16 +1411,18 @@ void insertWithSelect(string destination){
 		string where_val = yytext;
 		cout<<"Where val="<<where_val<<"\n";
 		mtoken=yylex();
-		generateOutput(source_tb,columns,temp_table,1,1,where_col,where_val);
+		
+		
+		generateOutput(source_tb,columns,temp_table,1,1,where_col,where_val,0);
 	}else{
-		generateOutput(source_tb,columns,temp_table,1,0,"","");
+		generateOutput(source_tb,columns,temp_table,1,0,"","",0);
 	}
 	
 	//open file containing output of select.
-	ifstream f((temp_table+".tbl").c_str(),ios::in|ios::binary);
+	ifstream f((temp_table+".tbl.bin").c_str(),ios::in|ios::binary);
 	
 	//open file in which insert is to be done
-	ofstream file((destination+".tbl").c_str(), std::ios_base::out | std::ios_base::app | std::ios_base::binary);	
+	ofstream file((destination+".tbl.bin").c_str(), std::ios_base::out | std::ios_base::app | std::ios_base::binary);	
 	
 	//get primary key of destination table to check if the insertion data does not violate the PK condition in destination table
 	string primaryKey = getPrimaryKey(destination);
@@ -1474,16 +1430,20 @@ void insertWithSelect(string destination){
 	int *mIndex = getColumnIntIndexes(destination,primaryKey);
 	cout<<"Primary key index is "<<mIndex[0]<<"\n";
 	
+	output<<"Selecting "<<columns<<" from "<<source_tb<<" and Inserting into "<<destination<<"\n";
 	
 	string x;
 	while(getline(f,x)){
 		
 		if(checkPKViolation(destination,x,mIndex[0])){
 			cout<<"Inserting "<<x<<"\n";
+			output<<"Inserting "<<x<<"\n";
 			update(destination);
 			file<<x<<"\n";
 		}
 	}
+	
+	output<<"------------------------\n";
 	f.close();
 	file.close();
 }
@@ -1548,10 +1508,9 @@ string select(){
 			
 			mtoken=yylex();
 			cout<<"Source table : "<<alias+"_JOIN_"<<yytext<<" Selected Columns : "<<columns<<"\n";
-			//parseJoin(columns,table1,table2)
 			string table2 = yytext;
-			parseJoin(alias, table2, columns);
-			return alias+table2;
+			string joinTab = parseJoin(alias, table2, columns);
+			return joinTab;
 		}		
 		
 		while((mtoken != IDENTIFIER) && (mtoken!=SEMICOLON)){
@@ -1563,7 +1522,7 @@ string select(){
 
 			
 			
-			generateOutput(alias, columns, yytext, 1, where_flag, where_column, where_value);
+			generateOutput(alias, columns, yytext, 1, where_flag, where_column, where_value,0);
 			
 			return yytext;
 		}
@@ -1572,7 +1531,11 @@ string select(){
 			//actually here we should not return anything since we are on the outermost part of the query and returning 
 			//anything doesn't makes sense, but just for the sake of sanity we do it.
 			
-			generateOutput(alias, columns, "null", 0, where_flag, where_column, where_value);
+			output<<"Source table : "<<alias<<" Selected Columns : "<<columns<<"\n";
+			
+			generateOutput(alias, columns, "null", 0, where_flag, where_column, where_value,0);
+			
+			output<<"-------------------\n\n";
 			return alias;
 		}
 	}
@@ -1620,10 +1583,9 @@ string select(){
 			
 			mtoken=yylex();
 			cout<<"Source table : "<<src_tablename<<yytext<<" Selected Columns : "<<columns<<"\n";
-			//parseJoin(columns,table1,table2)
 			string table2 = yytext;
-			parseJoin(src_tablename, table2, columns);
-			return src_tablename+table2;
+			string joinTab = parseJoin(src_tablename, table2, columns);
+			return joinTab;
 		}
 		
 		while((mtoken != IDENTIFIER) && (mtoken!=SEMICOLON)){
@@ -1634,7 +1596,7 @@ string select(){
 			cout<<"Source table : "<<src_tablename<<" Selected Columns : "<<columns<<" Destination table : "<<yytext<<"\n";
 			
 			//call generate output function here for innermost query as
-			generateOutput(src_tablename, columns, yytext, 1,where_flag, where_column, where_value);
+			generateOutput(src_tablename, columns, yytext, 1,where_flag, where_column, where_value,0);
 			
 			return yytext;
 		}
@@ -1642,8 +1604,13 @@ string select(){
 			//this will be called only when there are no nested queries
 			cout<<"Select columns : "<<columns<<" from table : "<<src_tablename<<"\n";
 			
+			output<<"Source table : "<<src_tablename<<" Selected Columns : "<<columns<<"\n";
+			
 			//call the generate output function from here for single select queries as 
-			generateOutput(src_tablename, columns, "null", 0, where_flag, where_column, where_value);
+			generateOutput(src_tablename, columns, "null", 0, where_flag, where_column, where_value,0);
+			
+			
+			output<<"-------------------\n\n";
 			return src_tablename;
 		}
 		
@@ -1747,9 +1714,11 @@ void create(){
 		pk=yytext;	
 	}
 	
-	append(tablename,append_columns,pk,recSize,0,0,0);
+	output<<"Created Table "<<tablename<<" successfully.\n--------------------\n";
 	
-	tablename+=".tbl";
+	append(tablename,append_columns,pk,recSize,0,0,0,0);
+	
+	tablename+=".tbl.bin";
 	ofstream mfout (tablename.c_str(), std::ios_base::binary|std::ios_base::app);
 	mfout.close();
 	
@@ -1764,7 +1733,7 @@ void insert(){
 	if ((nToken = yylex())== IDENTIFIER){	
 		tablename=yytext;
 		temp_tb=tablename;
-		tablename+=".tbl";	
+		tablename+=".tbl.bin";	
 		cout<<"Tablename is "<<tablename<<"\n";
 	}
 
@@ -1774,7 +1743,7 @@ void insert(){
 		return;
 	}
 
-	//open .tbl file to write the record
+	//open .tbl.bin file to write the record
 	ofstream file(tablename.c_str(), std::ios_base::out | std::ios_base::app | std::ios_base::binary);	
 	
 	
@@ -1790,6 +1759,18 @@ void insert(){
 		cout<<"Select detected";
 		insertWithSelect(temp_tb);
 		return;
+	}
+	if(nToken==OPENBRACE){
+	
+		nToken=yylex();
+		if(nToken==SELECT){
+		
+			cout<<"Select detected";
+			insertWithSelect(temp_tb);
+			return;
+		
+		}
+	
 	}
 	
 	
@@ -1897,6 +1878,7 @@ void insert(){
 		return;
 	}
 	
+	output<<"Inserted into "<<temp_tb<<"\nRow : "<<row<<"\n---------------\n";
 	
 	file.write(row.c_str(), row.size());
 
@@ -1914,26 +1896,7 @@ void insert(){
 		
 }
 
-/*
-void tables(){
-	
-	ifstream f("catalog.txt",ios::in);
-	
-	string x;
-	while(getline(f,x)){
-		vector<string> vec1;
-		split(x,'=',vec1);
-		cout<<"Tablename : "<<vec1[1]<<"\n";
-		getline(f,x);
-		cout<<x<<"\n\n";
-		
-		getline(f,x);
-		getline(f,x);
-		
-	}
-	f.close();
-	
-}*/
+
 
 int main(int argc, char **argv){
 
@@ -1947,7 +1910,7 @@ int main(int argc, char **argv){
 	
 	int ntoken = yylex();
 	
-//	while(ntoken){
+	while(ntoken){
 
 		switch(ntoken){
 			case CREATE:{
@@ -2004,6 +1967,7 @@ int main(int argc, char **argv){
 		
 		//TODO: Do a while loop until next create|select|insert|show token is encountered.
 		//then continue again.
-//	}
+	}
 	dump();	
+	output.close();
 }
