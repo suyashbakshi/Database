@@ -4,4 +4,5 @@ The directory database homework contains code for the database normalization cod
 A sample input file will look like:
 
 Tablename1(Column1(k), Column2(k), Column3, column4)
+
 Tablename2(Column1(k), Column2)
